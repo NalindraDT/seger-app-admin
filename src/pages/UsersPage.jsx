@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import {
-    Users, UserCheck, Search, Upload, Edit, Eye, ChevronLeft, ChevronRight,
+    Users, UserCheck, Search, Upload, Edit, Eye, EyeOff, ChevronLeft, ChevronRight,
     X, CheckCircle2, AlertTriangle, FileDown, UploadCloud, FileSpreadsheet,
     User as UserIcon, Mail, Phone, Shield, TrendingUp, Flame, Trash2, Plus
 } from 'lucide-react';
@@ -23,6 +23,8 @@ export default function UsersPage() {
     const [addFormData, setAddFormData] = useState({
         email: '', password: '', full_name: '', phone_number: '', department_id: ''
     });
+    const [addFormErrors, setAddFormErrors] = useState({});
+    const [showAddPassword, setShowAddPassword] = useState(false);
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
@@ -108,9 +110,17 @@ export default function UsersPage() {
         setTimeout(() => setToastMessage(''), 4000);
     };
 
+    const closeAddModal = () => {
+        setIsAddModalOpen(false);
+        setAddFormData({ email: '', password: '', full_name: '', phone_number: '', department_id: '' });
+        setAddFormErrors({});
+        setShowAddPassword(false);
+    };
+
     const handleAddSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setAddFormErrors({});
         try {
             const token = localStorage.getItem('jwt_token');
             const response = await fetch(`${BASE_URL}/auth/register`, {
@@ -125,13 +135,27 @@ export default function UsersPage() {
             const json = await response.json();
             
             if (response.ok && (json.success || json.status === 'success')) {
-                setIsAddModalOpen(false);
-                setAddFormData({ email: '', password: '', full_name: '', phone_number: '', department_id: '' });
+                closeAddModal();
                 fetchUsers();
                 fetchStats();
                 showToast('User berhasil ditambahkan!');
             } else {
-                alert(json.message || "Gagal menambahkan user.");
+                const errorCode = json.error?.code;
+
+                if (errorCode === 'VALIDATION_ERROR') {
+                    // Contoh: { error: { details: { fieldErrors: { email: ["Invalid email"] } } } }
+                    const fieldErrors = json.error?.details?.fieldErrors || {};
+                    const newErrors = {};
+                    Object.keys(fieldErrors).forEach((field) => {
+                        const messages = fieldErrors[field];
+                        newErrors[field] = Array.isArray(messages) ? messages[0] : messages;
+                    });
+                    setAddFormErrors(newErrors);
+                } else if (errorCode === 'EMAIL_ALREADY_EXISTS') {
+                    setAddFormErrors({ email: 'Email sudah terdaftar, gunakan email lain.' });
+                } else {
+                    alert(json.error?.message || json.message || "Gagal menambahkan user.");
+                }
             }
         } catch (error) {
             alert("Terjadi kesalahan jaringan.");
@@ -436,7 +460,7 @@ export default function UsersPage() {
                                 </div>
                                 <h2 className="text-lg font-bold text-gray-900">Tambah User Baru</h2>
                             </div>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+                            <button onClick={closeAddModal} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                         </div>
                         <form onSubmit={handleAddSubmit}>
                             <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
@@ -447,11 +471,42 @@ export default function UsersPage() {
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Alamat Email</label>
-                                        <input type="email" required value={addFormData.email} onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })} placeholder="user@example.com" className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
+                                        <input
+                                            type="email"
+                                            required
+                                            value={addFormData.email}
+                                            onChange={(e) => {
+                                                setAddFormData({ ...addFormData, email: e.target.value });
+                                                if (addFormErrors.email) setAddFormErrors({ ...addFormErrors, email: '' });
+                                            }}
+                                            placeholder="user@example.com"
+                                            className={`w-full px-4 py-2.5 bg-[#F8F9FC] border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 ${addFormErrors.email ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 focus:ring-[#5A2EFF]'}`}
+                                        />
+                                        {addFormErrors.email && (
+                                            <p className="text-[11px] text-red-500 font-semibold mt-1">{addFormErrors.email}</p>
+                                        )}
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Password</label>
-                                        <input type="password" required value={addFormData.password} onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })} placeholder="Minimal 8 karakter" minLength={8} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
+                                        <div className="relative">
+                                            <input
+                                                type={showAddPassword ? 'text' : 'password'}
+                                                required
+                                                value={addFormData.password}
+                                                onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
+                                                placeholder="Minimal 8 karakter"
+                                                minLength={8}
+                                                className="w-full px-4 py-2.5 pr-11 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAddPassword((prev) => !prev)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                                tabIndex={-1}
+                                            >
+                                                {showAddPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Nomor Telepon</label>
@@ -469,7 +524,7 @@ export default function UsersPage() {
                                 </div>
                             </div>
                             <div className="px-6 py-5 border-t border-gray-100 bg-white flex space-x-3">
-                                <button type="button" onClick={() => setIsAddModalOpen(false)} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition-colors">Batal</button>
+                                <button type="button" onClick={closeAddModal} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition-colors">Batal</button>
                                 <button type="submit" disabled={isSubmitting || !addFormData.department_id} className="flex-1 px-4 py-3 rounded-xl bg-[#5A2EFF] text-white font-bold hover:bg-indigo-600 shadow-sm transition-colors disabled:opacity-50">
                                     {isSubmitting ? 'Menyimpan...' : 'Simpan User'}
                                 </button>
