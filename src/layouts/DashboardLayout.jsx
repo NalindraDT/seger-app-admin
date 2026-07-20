@@ -5,6 +5,7 @@ import {
     BookOpen, Gift, BarChart2, Settings, Bell, LogOut, X, 
     ClockAlert, Medal, CalendarDays, Flame, ChevronDown, Trophy, Building2
 } from 'lucide-react';
+import { BASE_URL } from '../utils/apiConfig';
 
 export default function DashboardLayout() {
     const navigate = useNavigate();
@@ -78,7 +79,7 @@ export default function DashboardLayout() {
             const token = localStorage.getItem('jwt_token');
             if (!token) return;
 
-            const response = await fetch('https://pltuapp.potydev.cloud/api/v1/users/profile', {
+            const response = await fetch(`${BASE_URL}/users/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -128,7 +129,7 @@ export default function DashboardLayout() {
         setIsLoggingOut(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            await fetch('https://pltuapp.potydev.cloud/api/v1/auth/logout', {
+            await fetch(`${BASE_URL}/auth/logout`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
             });

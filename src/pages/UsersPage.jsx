@@ -27,7 +27,7 @@ export default function UsersPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [formData, setFormData] = useState({
-        full_name: '', phone_number: '', is_active: true
+        full_name: '', phone_number: '', department_id: '', is_active: true
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -161,8 +161,10 @@ export default function UsersPage() {
     };
 
     const handleDownloadTemplate = () => {
-        const header = ["email", "full_name", "password"];
-        const rowData = ["user@example.com", "User", "userpltu123"];
+        // 1. Ubah department_id menjadi department_name
+        const header = ["email", "full_name", "password", "department_name"];
+        // 2. Beri contoh isi dengan nama departemen yang valid
+        const rowData = ["user@example.com", "User Demo", "userpltu123", "Plant Operations"];
 
         const ws = XLSX.utils.aoa_to_sheet([header, rowData]);
 
@@ -185,7 +187,7 @@ export default function UsersPage() {
             ws[address].s = headerStyle;
         }
 
-        ws['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 20 }];
+        ws['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 35 }];
         ws['!rows'] = [{ hpt: 25 }];
 
         const wb = XLSX.utils.book_new();
@@ -229,6 +231,7 @@ export default function UsersPage() {
         setFormData({
             full_name: user.fullName,
             phone_number: user.phoneNumber || '',
+            department_id: user.departmentId || '',
             is_active: user.isActive
         });
         setIsEditModalOpen(true);
@@ -349,6 +352,8 @@ export default function UsersPage() {
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center w-16">No.</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Nama user</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Role user</th>
+                                {/* TAMBAHAN: Kolom Departemen */}
+                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Departemen</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">Point</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">EXP</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">Status</th>
@@ -356,10 +361,11 @@ export default function UsersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
+                            {/* NOTE: colSpan diubah dari 7 menjadi 8 karena ada penambahan kolom */}
                             {isLoading ? (
-                                <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data user...</td></tr>
+                                <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">Memuat data user...</td></tr>
                             ) : filteredUsers.length === 0 ? (
-                                <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">User tidak ditemukan.</td></tr>
+                                <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">User tidak ditemukan.</td></tr>
                             ) : filteredUsers.map((user, index) => (
                                 <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * 10) + index + 1}</td>
@@ -378,6 +384,14 @@ export default function UsersPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4"><span className="capitalize font-medium text-gray-600">{user.role}</span></td>
+                                    
+                                    {/* TAMBAHAN: Data Departemen */}
+                                    <td className="px-6 py-4">
+                                        <span className="font-medium text-gray-700">
+                                            {user.departmentName || <span className="text-gray-400 italic">Belum diatur</span>}
+                                        </span>
+                                    </td>
+
                                     <td className="px-6 py-4 font-bold text-gray-700 text-center">{user.pointsBalance}</td>
                                     <td className="px-6 py-4 font-bold text-gray-700 text-center">{user.xpBalance}</td>
                                     <td className="px-6 py-4 text-center">
@@ -467,24 +481,68 @@ export default function UsersPage() {
 
             {/* MODAL IMPORT EXCEL */}
             {isImportModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <div className="flex items-center space-x-3"><div className="w-10 h-10 bg-indigo-50 text-[#5A2EFF] rounded-full flex items-center justify-center"><UploadCloud className="w-5 h-5" /></div><div><h2 className="text-lg font-extrabold text-gray-900">Import User</h2><p className="text-[11px] font-medium text-gray-500">Gunakan file Excel untuk data masal</p></div></div>
-                            <button onClick={() => setIsImportModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-xl transition-colors"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-indigo-50/50">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-indigo-100 text-[#5A2EFF] rounded-full flex items-center justify-center">
+                                    <UploadCloud className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-gray-900">Import User</h2>
+                                    <p className="text-[11px] font-medium text-gray-500">Gunakan file Excel untuk data masal</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsImportModalOpen(false)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
-                        <form onSubmit={handleImportSubmit} className="p-8 space-y-6">
+                        
+                        <form onSubmit={handleImportSubmit} className="p-6 space-y-6">
                             <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5">
-                                <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center"><FileSpreadsheet className="w-4 h-4 mr-2 text-blue-600" /> Petunjuk</h4>
+                                <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center">
+                                    <FileSpreadsheet className="w-4 h-4 mr-2 text-blue-600" /> Petunjuk
+                                </h4>
                                 <ul className="text-sm text-blue-800/80 space-y-2 mb-5 list-disc pl-5 font-medium">
                                     <li>Gunakan template Excel (.xlsx) yang disediakan.</li>
-                                    <li>Pastikan kolom <strong>email</strong> dan <strong>full_name</strong> tidak kosong.</li>
+                                    <li>Pastikan kolom <strong>email</strong>, <strong>full_name</strong>, dan <strong>department_name</strong> tidak kosong.</li>
                                     <li>Sistem akan men-generate password otomatis jika kolom password dikosongkan.</li>
                                 </ul>
-                                <button type="button" onClick={handleDownloadTemplate} className="w-full flex items-center justify-center px-4 py-2.5 bg-white border border-blue-200 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-50 transition-colors shadow-sm"><FileDown className="w-4 h-4 mr-2" /> Download Template .xlsx</button>
+                                <button 
+                                    type="button" 
+                                    onClick={handleDownloadTemplate} 
+                                    className="w-full flex items-center justify-center px-4 py-2.5 bg-white border border-blue-200 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-50 transition-colors shadow-sm"
+                                >
+                                    <FileDown className="w-4 h-4 mr-2" /> Download Template .xlsx
+                                </button>
                             </div>
-                            <input type="file" accept=".xlsx, .xls" onChange={(e) => setSelectedFile(e.target.files[0])} required className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-[#F8F9FC] file:text-[#5A2EFF] border border-gray-200 rounded-xl cursor-pointer" />
-                            <div className="flex space-x-3 pt-4"><button type="button" onClick={() => setIsImportModalOpen(false)} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold">Batal</button><button type="submit" disabled={isSubmitting || !selectedFile} className="flex-1 px-4 py-3 rounded-xl bg-[#5A2EFF] text-white font-bold hover:bg-indigo-700 shadow-sm">{isSubmitting ? 'Mengunggah...' : 'Upload Data'}</button></div>
+
+                            <div>
+                                <input 
+                                    type="file" 
+                                    accept=".xlsx, .xls" 
+                                    onChange={(e) => setSelectedFile(e.target.files[0])} 
+                                    required 
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-[#F8F9FC] file:text-[#5A2EFF] border border-gray-200 rounded-xl cursor-pointer" 
+                                />
+                            </div>
+
+                            <div className="flex space-x-3 pt-2">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsImportModalOpen(false)} 
+                                    className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={isSubmitting || !selectedFile} 
+                                    className="flex-1 px-4 py-3 rounded-xl bg-[#5A2EFF] text-white font-bold hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50"
+                                >
+                                    {isSubmitting ? 'Mengunggah...' : 'Upload Data'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -592,6 +650,18 @@ export default function UsersPage() {
                                     <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Phone Number</label>
                                     <input type="tel" value={formData.phone_number} onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
                                 </div>
+                                
+                                {/* DROPDOWN DEPARTEMEN */}
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Departemen</label>
+                                    <select required value={formData.department_id} onChange={(e) => setFormData({ ...formData, department_id: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
+                                        <option value="" disabled>Pilih Departemen...</option>
+                                        {departments.map((dept) => (
+                                            <option key={dept.id} value={dept.id}>{dept.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 <div>
                                     <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Status</label>
                                     <select value={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
