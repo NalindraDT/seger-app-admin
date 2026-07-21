@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     Award, Plus, Edit, Trash2, ChevronLeft, ChevronRight,
     ImageIcon, X, Star, Hash, UploadCloud, CheckCircle2,
-    ShieldCheck, Eye, Info
+    ShieldCheck, Eye, Info, AlertTriangle
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';
 
@@ -18,6 +18,9 @@ export default function BadgesPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const [selectedBadge, setSelectedBadge] = useState(null);
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [badgeToDelete, setBadgeToDelete] = useState(null);
 
     // FORM DATA
     const [formData, setFormData] = useState({
@@ -143,6 +146,32 @@ export default function BadgesPage() {
         }
     };
 
+    const executeDelete = async () => {
+        if (!badgeToDelete) return;
+        setIsSubmitting(true);
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const response = await fetch(`${getBaseUrl()}/admin/badges/${badgeToDelete.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const json = await response.json();
+
+            if (json.success || json.status === 'success') {
+                setIsDeleteModalOpen(false);
+                setBadgeToDelete(null);
+                fetchBadges();
+                showToast('Badge berhasil dihapus!');
+            } else {
+                alert(json.message || json.error?.message || 'Gagal menghapus badge.');
+            }
+        } catch (error) {
+            alert('Terjadi kesalahan jaringan.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div className="space-y-6 relative">
             {/* TOAST */}
@@ -234,7 +263,11 @@ export default function BadgesPage() {
                                                 <button onClick={() => openEditModal(item)} className="p-1.5 bg-orange-50 text-orange-500 rounded-md hover:bg-orange-100" title="Edit">
                                                     <Edit className="w-3.5 h-3.5" />
                                                 </button>
-                                                <button className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100" title="Hapus">
+                                                <button
+                                                    onClick={() => { setBadgeToDelete(item); setIsDeleteModalOpen(true); }}
+                                                    className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100"
+                                                    title="Hapus"
+                                                >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button onClick={() => openDetailModal(item)} className="p-1.5 bg-indigo-50 text-[#5A2EFF] rounded-md hover:bg-indigo-100" title="Detail">
@@ -446,6 +479,37 @@ export default function BadgesPage() {
                         <div className="px-8 py-5 border-t border-gray-100 bg-white flex justify-end">
                             <button onClick={() => setIsDetailModalOpen(false)} className="px-8 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors shadow-sm">
                                 Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL HAPUS */}
+            {isDeleteModalOpen && badgeToDelete && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5">
+                            <AlertTriangle className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-xl font-extrabold text-gray-900 mb-2">Hapus Badge?</h3>
+                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+                            Anda akan menghapus badge <strong className="text-gray-700">"{badgeToDelete.name}"</strong>. Tindakan ini tidak dapat dibatalkan.
+                        </p>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => { setIsDeleteModalOpen(false); setBadgeToDelete(null); }}
+                                disabled={isSubmitting}
+                                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={executeDelete}
+                                disabled={isSubmitting}
+                                className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-sm transition-colors disabled:opacity-50"
+                            >
+                                {isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}
                             </button>
                         </div>
                     </div>

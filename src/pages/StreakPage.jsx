@@ -262,7 +262,7 @@ export default function StreakPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-center space-x-2">
                                                 <button onClick={() => openEditModal(item)} className="p-1.5 bg-orange-50 text-orange-500 rounded-md hover:bg-orange-100" title="Edit"><Edit className="w-3.5 h-3.5" /></button>
-                                                {/* <button onClick={() => openDeleteModal(item)} className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100" title="Hapus"><Trash2 className="w-3.5 h-3.5" /></button> */}
+                                                <button onClick={() => openDeleteModal(item)} className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100" title="Hapus"><Trash2 className="w-3.5 h-3.5" /></button>
                                                 <button onClick={() => openDetailModal(item)} className="p-1.5 bg-indigo-50 text-[#5A2EFF] rounded-md hover:bg-indigo-100" title="Detail"><Info className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
