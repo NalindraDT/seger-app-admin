@@ -3,6 +3,7 @@ import {
     Flame, Plus, Edit, Trash2, X, CheckCircle2,
     Target, Star, Award, ChevronDown, Info, AlertTriangle, ShieldCheck
 } from 'lucide-react';
+import { BASE_URL } from '../utils/apiConfig';
 
 export default function StreakPage() {
     const [rules, setRules] = useState([]);

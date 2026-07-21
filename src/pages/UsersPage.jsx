@@ -21,7 +21,7 @@ export default function UsersPage() {
     // STATE UNTUK MODAL TAMBAH USER MANUAl
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [addFormData, setAddFormData] = useState({
-        email: '', password: '', full_name: '', phone_number: '', department_id: ''
+        email: '', password: '', full_name: '', phone_number: '', department_id: '', role: 'participant'
     });
     const [addFormErrors, setAddFormErrors] = useState({});
     const [showAddPassword, setShowAddPassword] = useState(false);
@@ -29,7 +29,7 @@ export default function UsersPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [formData, setFormData] = useState({
-        full_name: '', phone_number: '', department_id: '', is_active: true
+        full_name: '', phone_number: '', department_id: '', is_active: true, role: 'participant'
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,7 +112,7 @@ export default function UsersPage() {
 
     const closeAddModal = () => {
         setIsAddModalOpen(false);
-        setAddFormData({ email: '', password: '', full_name: '', phone_number: '', department_id: '' });
+        setAddFormData({ email: '', password: '', full_name: '', phone_number: '', department_id: '', role: 'participant' });
         setAddFormErrors({});
         setShowAddPassword(false);
     };
@@ -123,13 +123,23 @@ export default function UsersPage() {
         setAddFormErrors({});
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/auth/register`, {
+            const payload = {
+                email: addFormData.email,
+                password: addFormData.password,
+                full_name: addFormData.full_name,
+                role: addFormData.role,
+                is_active: true,
+            };
+            if (addFormData.phone_number) payload.phone_number = addFormData.phone_number;
+            if (addFormData.department_id) payload.department_id = addFormData.department_id;
+
+            const response = await fetch(`${BASE_URL}/admin/users`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` 
                 },
-                body: JSON.stringify(addFormData)
+                body: JSON.stringify(payload)
             });
 
             const json = await response.json();
@@ -142,8 +152,7 @@ export default function UsersPage() {
             } else {
                 const errorCode = json.error?.code;
 
-                if (errorCode === 'VALIDATION_ERROR') {
-                    // Contoh: { error: { details: { fieldErrors: { email: ["Invalid email"] } } } }
+                if (errorCode === 'VALIDATION_ERROR' || response.status === 400) {
                     const fieldErrors = json.error?.details?.fieldErrors || {};
                     const newErrors = {};
                     Object.keys(fieldErrors).forEach((field) => {
@@ -151,7 +160,7 @@ export default function UsersPage() {
                         newErrors[field] = Array.isArray(messages) ? messages[0] : messages;
                     });
                     setAddFormErrors(newErrors);
-                } else if (errorCode === 'EMAIL_ALREADY_EXISTS') {
+                } else if (response.status === 409 || errorCode === 'EMAIL_ALREADY_EXISTS') {
                     setAddFormErrors({ email: 'Email sudah terdaftar, gunakan email lain.' });
                 } else {
                     alert(json.error?.message || json.message || "Gagal menambahkan user.");
@@ -256,7 +265,8 @@ export default function UsersPage() {
             full_name: user.fullName,
             phone_number: user.phoneNumber || '',
             department_id: user.departmentId || '',
-            is_active: user.isActive
+            is_active: user.isActive,
+            role: user.role || 'participant'
         });
         setIsEditModalOpen(true);
     };
@@ -407,7 +417,15 @@ export default function UsersPage() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4"><span className="capitalize font-medium text-gray-600">{user.role}</span></td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wide ${
+                                            user.role === 'admin'
+                                                ? 'bg-purple-50 text-purple-600'
+                                                : 'bg-blue-50 text-blue-600'
+                                        }`}>
+                                            {user.role}
+                                        </span>
+                                    </td>
                                     
                                     {/* TAMBAHAN: Data Departemen */}
                                     <td className="px-6 py-4">
@@ -425,11 +443,9 @@ export default function UsersPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center justify-center space-x-2">
+                                            <button onClick={() => openEditModal(user)} className="p-1.5 bg-orange-50 text-orange-500 rounded-md hover:bg-orange-100 transition-colors" title="Edit User"><Edit className="w-3.5 h-3.5" /></button>
                                             {user.role.toLowerCase() !== 'admin' && (
-                                                <>
-                                                    <button onClick={() => openEditModal(user)} className="p-1.5 bg-orange-50 text-orange-500 rounded-md hover:bg-orange-100 transition-colors" title="Edit User"><Edit className="w-3.5 h-3.5" /></button>
-                                                    <button onClick={() => { setUserToDelete(user); setIsDeleteModalOpen(true); }} className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors" title="Hapus User"><Trash2 className="w-3.5 h-3.5" /></button>
-                                                </>
+                                                <button onClick={() => { setUserToDelete(user); setIsDeleteModalOpen(true); }} className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors" title="Hapus User"><Trash2 className="w-3.5 h-3.5" /></button>
                                             )}
                                             <button onClick={() => openDetailModal(user.id)} className="p-1.5 bg-indigo-50 text-[#5A2EFF] rounded-md hover:bg-indigo-100 transition-colors" title="Detail User"><Eye className="w-3.5 h-3.5" /></button>
                                         </div>
@@ -511,6 +527,17 @@ export default function UsersPage() {
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Nomor Telepon</label>
                                         <input type="tel" value={addFormData.phone_number} onChange={(e) => setAddFormData({ ...addFormData, phone_number: e.target.value })} placeholder="08xxxxxxxxxx" className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
+                                    </div>
+                                    <div className="col-span-2 md:col-span-1">
+                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Role</label>
+                                        <select
+                                            value={addFormData.role}
+                                            onChange={(e) => setAddFormData({ ...addFormData, role: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]"
+                                        >
+                                            <option value="participant">Participant</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Departemen</label>
@@ -714,6 +741,18 @@ export default function UsersPage() {
                                         {departments.map((dept) => (
                                             <option key={dept.id} value={dept.id}>{dept.name}</option>
                                         ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Role</label>
+                                    <select
+                                        value={formData.role}
+                                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]"
+                                    >
+                                        <option value="participant">Participant</option>
+                                        <option value="admin">Admin</option>
                                     </select>
                                 </div>
 

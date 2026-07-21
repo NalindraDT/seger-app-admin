@@ -128,7 +128,7 @@ export default function RewardsPage() {
             data.append('is_active', formData.is_active);
             if (formData.image) data.append('image', formData.image);
 
-            const url = mode === 'add' ? `${BASE_URL}admin/rewards` : `${BASE_URL}admin/rewards/${selectedReward.id}`;
+            const url = mode === 'add' ? `${BASE_URL}/admin/rewards` : `${BASE_URL}/admin/rewards/${selectedReward.id}`;
             const response = await fetch(url, { method: mode === 'add' ? 'POST' : 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: data });
             const json = await response.json();
 
@@ -152,7 +152,7 @@ export default function RewardsPage() {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}admin/rewards/${rewardToDelete.id}`, {
+            const response = await fetch(`${BASE_URL}/admin/rewards/${rewardToDelete.id}`, {
                 method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -186,7 +186,7 @@ export default function RewardsPage() {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}admin/reward-redemptions/${selectedRedemption.id}/process`, {
+            const response = await fetch(`${BASE_URL}/admin/reward-redemptions/${selectedRedemption.id}/process`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
