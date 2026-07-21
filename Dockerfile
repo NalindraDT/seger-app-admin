@@ -8,7 +8,7 @@ RUN npm ci
 
 COPY . .
 
-ARG VITE_API_BASE_URL=http://31.97.107.17:3001/api/v1
+ARG VITE_API_BASE_URL=https://seger-api.potydev.cloud/api/v1
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 RUN npm run build
@@ -21,8 +21,11 @@ WORKDIR /app
 RUN npm install -g serve@14.2.4
 
 COPY --from=builder /app/dist ./dist
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 ENV PORT=3000
+ENV API_BASE_URL=https://seger-api.potydev.cloud/api/v1
 EXPOSE 3000
 
-CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT}"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
