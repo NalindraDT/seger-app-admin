@@ -3,7 +3,7 @@ import {
     Trophy, Medal, Crown, Search, ChevronLeft, ChevronRight, Award,
     CalendarDays, Filter, ChevronDown
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function LeaderboardPage() {
     // STATE GLOBAL
@@ -23,7 +23,7 @@ export default function LeaderboardPage() {
     const fetchEvents = async () => {
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/events?page=1&limit=100`, {
+            const response = await fetch(`${getBaseUrl()}/admin/events?page=1&limit=100`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -44,7 +44,7 @@ export default function LeaderboardPage() {
             let url = '';
 
             if (activeTab === 'regular') {
-                url = `${BASE_URL}/leaderboard/${period}?page=${currentPage}&limit=10`;
+                url = `${getBaseUrl()}/leaderboard/${period}?page=${currentPage}&limit=10`;
             } else if (activeTab === 'event') {
                 if (!selectedEventId) {
                     setLeaderboard([]);
@@ -52,7 +52,7 @@ export default function LeaderboardPage() {
                     return;
                 }
                 // Menembak endpoint event spesifik
-                url = `${BASE_URL}/leaderboard/events/${selectedEventId}?page=${currentPage}&limit=10`;
+                url = `${getBaseUrl()}/leaderboard/events/${selectedEventId}?page=${currentPage}&limit=10`;
             }
 
             const response = await fetch(url, {

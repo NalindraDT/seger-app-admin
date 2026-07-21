@@ -5,7 +5,7 @@ import {
     BookOpen, Gift, BarChart2, Settings, Bell, LogOut, X, 
     ClockAlert, Medal, CalendarDays, Flame, ChevronDown, Trophy, Building2
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function DashboardLayout() {
     const navigate = useNavigate();
@@ -79,7 +79,7 @@ export default function DashboardLayout() {
             const token = localStorage.getItem('jwt_token');
             if (!token) return;
 
-            const response = await fetch(`${BASE_URL}/users/profile`, {
+            const response = await fetch(`${getBaseUrl()}/users/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -129,7 +129,7 @@ export default function DashboardLayout() {
         setIsLoggingOut(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            await fetch(`${BASE_URL}/auth/logout`, {
+            await fetch(`${getBaseUrl()}/auth/logout`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
             });

@@ -3,7 +3,7 @@ import {
     Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight,
     X, MapPin, ChevronDown, CheckCircle2, AlertTriangle
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function RulesPage() {
     const [activeTab, setActiveTab] = useState('exp'); // 'exp' atau 'point'
@@ -34,7 +34,7 @@ export default function RulesPage() {
     const fetchActivityTypes = async () => {
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/activity-types`, {
+            const response = await fetch(`${getBaseUrl()}/admin/activity-types`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -50,7 +50,7 @@ export default function RulesPage() {
             const token = localStorage.getItem('jwt_token');
             const endpoint = activeTab === 'exp' ? 'xp-rules' : 'point-rules';
 
-            const response = await fetch(`${BASE_URL}/admin/${endpoint}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/${endpoint}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -123,7 +123,7 @@ export default function RulesPage() {
             const token = localStorage.getItem('jwt_token');
             const endpoint = activeTab === 'exp' ? 'xp-rules' : 'point-rules';
 
-            let url = `${BASE_URL}/admin/${endpoint}`;
+            let url = `${getBaseUrl()}/admin/${endpoint}`;
             let method = 'POST';
             let payload = {};
 
@@ -176,7 +176,7 @@ export default function RulesPage() {
         try {
             const token = localStorage.getItem('jwt_token');
             const endpoint = activeTab === 'exp' ? 'xp-rules' : 'point-rules';
-            const response = await fetch(`${BASE_URL}/admin/${endpoint}/${ruleToDelete.id}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/${endpoint}/${ruleToDelete.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

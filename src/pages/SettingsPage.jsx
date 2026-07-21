@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     Settings, Save, CheckCircle2, Target, Coins, ShieldAlert, Edit, X, AlertTriangle
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function SettingsPage() {
     const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +33,7 @@ export default function SettingsPage() {
             const token = localStorage.getItem('jwt_token');
             
             // Fetch Limit Poin
-            const limitResponse = await fetch(`${BASE_URL}/admin/settings/activity-claim-limit`, {
+            const limitResponse = await fetch(`${getBaseUrl()}/admin/settings/activity-claim-limit`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const limitJson = await limitResponse.json();
@@ -43,7 +43,7 @@ export default function SettingsPage() {
             }
 
             // Fetch Status Maintenance
-            const maintenanceResponse = await fetch(`${BASE_URL}/admin/settings/maintenance`, {
+            const maintenanceResponse = await fetch(`${getBaseUrl()}/admin/settings/maintenance`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const maintenanceJson = await maintenanceResponse.json();
@@ -93,7 +93,7 @@ export default function SettingsPage() {
                 max_points_per_day: Number(formData.max_points_per_day)
             };
 
-            const response = await fetch(`${BASE_URL}/admin/settings/activity-claim-limit`, {
+            const response = await fetch(`${getBaseUrl()}/admin/settings/activity-claim-limit`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export default function SettingsPage() {
 
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/settings/maintenance`, {
+            const response = await fetch(`${getBaseUrl()}/admin/settings/maintenance`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

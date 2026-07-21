@@ -3,7 +3,7 @@ import {
     Building2, Search, Plus, Edit, Trash2, X, 
     CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function DepartmentsPage() {
     const [departments, setDepartments] = useState([]);
@@ -29,7 +29,7 @@ export default function DepartmentsPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/departments?page=${currentPage}&limit=10`, {
+            const response = await fetch(`${getBaseUrl()}/admin/departments?page=${currentPage}&limit=10`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -73,8 +73,8 @@ export default function DepartmentsPage() {
         try {
             const token = localStorage.getItem('jwt_token');
             const url = editId 
-                ? `${BASE_URL}/admin/departments/${editId}` 
-                : `${BASE_URL}/admin/departments`;
+                ? `${getBaseUrl()}/admin/departments/${editId}` 
+                : `${getBaseUrl()}/admin/departments`;
             const method = editId ? 'PUT' : 'POST'; // Sesuaikan jika backend pakai PATCH
 
             const response = await fetch(url, {
@@ -107,7 +107,7 @@ export default function DepartmentsPage() {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/departments/${departmentToDelete.id}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/departments/${departmentToDelete.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

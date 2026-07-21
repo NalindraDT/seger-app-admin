@@ -5,7 +5,7 @@ import {
     ExternalLink, ZoomIn, FileText, AlertTriangle, CheckCircle2,
     ClipboardList, Image as ImageIcon // <--- INI YANG MEMBUATNYA CRASH, SUDAH DITAMBAHKAN
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function SubmissionsPage() {
     const [submissions, setSubmissions] = useState([]);
@@ -31,7 +31,7 @@ export default function SubmissionsPage() {
             const token = localStorage.getItem('jwt_token');
             const statusQuery = activeTab === 'All' ? '' : `&status=${activeTab.toLowerCase()}`;
 
-            const response = await fetch(`${BASE_URL}/admin/activity-submissions?page=${currentPage}&limit=10${statusQuery}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/activity-submissions?page=${currentPage}&limit=10${statusQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -57,7 +57,7 @@ export default function SubmissionsPage() {
     const fetchDashboardSummary = async () => {
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/dashboard?range=7d`, {
+            const response = await fetch(`${getBaseUrl()}/admin/dashboard?range=7d`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -77,7 +77,7 @@ export default function SubmissionsPage() {
         setIsVerifying(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/activity-submissions/${selectedSubmission.id}/verify`, {
+            const response = await fetch(`${getBaseUrl()}/admin/activity-submissions/${selectedSubmission.id}/verify`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

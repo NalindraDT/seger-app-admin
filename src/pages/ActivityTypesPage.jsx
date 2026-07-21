@@ -3,7 +3,7 @@ import {
     Search, Plus, Edit, Link2, ChevronLeft, ChevronRight,
     X, Activity, ChevronDown, CheckCircle2, Trash2, AlertTriangle
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function ActivityTypesPage() {
     const [activities, setActivities] = useState([]);
@@ -27,7 +27,7 @@ export default function ActivityTypesPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/activity-types`, {
+            const response = await fetch(`${getBaseUrl()}/admin/activity-types`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -55,8 +55,8 @@ export default function ActivityTypesPage() {
         try {
             const token = localStorage.getItem('jwt_token');
             const url = modalMode === 'add'
-                ? `${BASE_URL}/admin/activity-types`
-                : `${BASE_URL}/admin/activity-types/${selectedId}`;
+                ? `${getBaseUrl()}/admin/activity-types`
+                : `${getBaseUrl()}/admin/activity-types/${selectedId}`;
 
             const response = await fetch(url, {
                 method: modalMode === 'add' ? 'POST' : 'PUT',
@@ -82,7 +82,7 @@ export default function ActivityTypesPage() {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/activity-types/${activityToDelete.id}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/activity-types/${activityToDelete.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

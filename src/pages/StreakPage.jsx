@@ -3,7 +3,7 @@ import {
     Flame, Plus, Edit, Trash2, X, CheckCircle2,
     Target, Star, Award, ChevronDown, Info, AlertTriangle, ShieldCheck
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function StreakPage() {
     const [rules, setRules] = useState([]);
@@ -33,7 +33,7 @@ export default function StreakPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/streak-rules`, {
+            const response = await fetch(`${getBaseUrl()}/admin/streak-rules`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -55,7 +55,7 @@ export default function StreakPage() {
     const fetchBadges = async () => {
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/badges`, {
+            const response = await fetch(`${getBaseUrl()}/admin/badges`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -122,8 +122,8 @@ export default function StreakPage() {
             };
 
             const url = mode === 'add'
-                ? `${BASE_URL}/admin/streak-rules`
-                : `${BASE_URL}/admin/streak-rules/${selectedRule.id}`;
+                ? `${getBaseUrl()}/admin/streak-rules`
+                : `${getBaseUrl()}/admin/streak-rules/${selectedRule.id}`;
 
             const response = await fetch(url, {
                 method: mode === 'add' ? 'POST' : 'PUT',
@@ -156,7 +156,7 @@ export default function StreakPage() {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/streak-rules/${selectedRule.id}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/streak-rules/${selectedRule.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

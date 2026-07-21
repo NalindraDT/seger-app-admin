@@ -4,7 +4,7 @@ import {
     ImageIcon, X, Star, Hash, UploadCloud, CheckCircle2,
     ShieldCheck, Eye, Info
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function BadgesPage() {
     const [badges, setBadges] = useState([]);
@@ -35,7 +35,7 @@ export default function BadgesPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/badges`, {
+            const response = await fetch(`${getBaseUrl()}/admin/badges`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -115,8 +115,8 @@ export default function BadgesPage() {
             if (formData.image) data.append('image', formData.image);
 
             const url = mode === 'add'
-                ? `${BASE_URL}/admin/badges`
-                : `${BASE_URL}/admin/badges/${selectedBadge.id}`;
+                ? `${getBaseUrl()}/admin/badges`
+                : `${getBaseUrl()}/admin/badges/${selectedBadge.id}`;
 
             // KITA HAPUS TRIK _METHOD DI SINI
             // DAN LANGSUNG MENGGUNAKAN METHOD 'PUT' MURNI DI FETCH BAWAH

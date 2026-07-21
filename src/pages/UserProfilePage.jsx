@@ -5,7 +5,7 @@ import {
     User, Mail, Phone, Calendar, Clock,
     Camera, CheckCircle2, Edit3, ShieldCheck, Info, X, Save, Loader2, Crop, Lock, KeyRound, Eye
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function UserProfilePage() {
     const [profile, setProfile] = useState(null);
@@ -40,7 +40,7 @@ export default function UserProfilePage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/users/profile`, {
+            const response = await fetch(`${getBaseUrl()}/users/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -85,7 +85,7 @@ export default function UserProfilePage() {
             const token = localStorage.getItem('jwt_token');
             const payload = { full_name: editForm.fullName, phone_number: editForm.phoneNumber };
 
-            const response = await fetch(`${BASE_URL}/users/profile`, {
+            const response = await fetch(`${getBaseUrl()}/users/profile`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -180,7 +180,7 @@ export default function UserProfilePage() {
             const formData = new FormData();
             formData.append('photo', croppedBlob, 'profile-cropped.jpg');
 
-            const response = await fetch(`${BASE_URL}/users/profile/photo`, {
+            const response = await fetch(`${getBaseUrl()}/users/profile/photo`, {
                 method: 'PUT', 
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
@@ -216,7 +216,7 @@ export default function UserProfilePage() {
         if (!profile?.email) return;
         setIsProcessingAuth(true);
         try {
-            const response = await fetch(`${BASE_URL}/auth/forgot-password`, {
+            const response = await fetch(`${getBaseUrl()}/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: profile.email }),
@@ -245,7 +245,7 @@ export default function UserProfilePage() {
         setAuthMessage({ type: '', text: '' });
 
         try {
-            const response = await fetch(`${BASE_URL}/auth/reset-password`, {
+            const response = await fetch(`${getBaseUrl()}/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 

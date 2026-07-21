@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoSeger from '../assets/logo-seger.png';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function LoginPage() {
     // STATE UNTUK NAVIGASI VIEW: 'login' | 'forgot' | 'reset'
@@ -29,7 +29,7 @@ export default function LoginPage() {
         setSuccessMsg('');
 
         try {
-            const response = await fetch(`${BASE_URL}/auth/login`, {
+            const response = await fetch(`${getBaseUrl()}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -66,7 +66,7 @@ export default function LoginPage() {
         setSuccessMsg('');
 
         try {
-            const response = await fetch(`${BASE_URL}/auth/forgot-password`, {
+            const response = await fetch(`${getBaseUrl()}/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),
@@ -95,7 +95,7 @@ export default function LoginPage() {
         setSuccessMsg('');
 
         try {
-            const response = await fetch(`${BASE_URL}/auth/reset-password`, {
+            const response = await fetch(`${getBaseUrl()}/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 

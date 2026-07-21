@@ -4,7 +4,7 @@ import {
     Image as ImageIcon, X, Gift, Coins, Package, AlignLeft, ChevronDown,
     UploadCloud, CheckCircle2, Eye, Info, AlertTriangle, CheckSquare, Clock
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function RewardsPage() {
     // =========================================================================
@@ -48,7 +48,7 @@ export default function RewardsPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/rewards`, {
+            const response = await fetch(`${getBaseUrl()}/admin/rewards`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -64,7 +64,7 @@ export default function RewardsPage() {
         setIsRedemptionsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/reward-redemptions?page=${redemptionsPage}&limit=10`, {
+            const response = await fetch(`${getBaseUrl()}/admin/reward-redemptions?page=${redemptionsPage}&limit=10`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -128,7 +128,7 @@ export default function RewardsPage() {
             data.append('is_active', formData.is_active);
             if (formData.image) data.append('image', formData.image);
 
-            const url = mode === 'add' ? `${BASE_URL}/admin/rewards` : `${BASE_URL}/admin/rewards/${selectedReward.id}`;
+            const url = mode === 'add' ? `${getBaseUrl()}/admin/rewards` : `${getBaseUrl()}/admin/rewards/${selectedReward.id}`;
             const response = await fetch(url, { method: mode === 'add' ? 'POST' : 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: data });
             const json = await response.json();
 
@@ -152,7 +152,7 @@ export default function RewardsPage() {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/rewards/${rewardToDelete.id}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/rewards/${rewardToDelete.id}`, {
                 method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -186,7 +186,7 @@ export default function RewardsPage() {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/reward-redemptions/${selectedRedemption.id}/process`, {
+            const response = await fetch(`${getBaseUrl()}/admin/reward-redemptions/${selectedRedemption.id}/process`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({

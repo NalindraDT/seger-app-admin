@@ -4,7 +4,7 @@ import {
     Image as ImageIcon, X, Palette, UploadCloud, CheckCircle2,
     Calendar, Clock, Info, ChevronDown, Flag
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function EventsPage() {
     const [events, setEvents] = useState([]);
@@ -37,7 +37,7 @@ export default function EventsPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/events?page=${currentPage}&limit=10`, {
+            const response = await fetch(`${getBaseUrl()}/admin/events?page=${currentPage}&limit=10`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -131,8 +131,8 @@ export default function EventsPage() {
             if (formData.banner_image) data.append('banner_image', formData.banner_image);
 
             const url = mode === 'add'
-                ? `${BASE_URL}/admin/events`
-                : `${BASE_URL}/admin/events/${selectedEvent.id}`;
+                ? `${getBaseUrl()}/admin/events`
+                : `${getBaseUrl()}/admin/events/${selectedEvent.id}`;
 
             const response = await fetch(url, {
                 method: mode === 'add' ? 'POST' : 'PUT',

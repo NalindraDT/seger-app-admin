@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; // <-- IMPORT BARU DI SINI
 import { Users, ClipboardCheck, CheckCircle, Gift } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function DashboardHome() {
     const [data, setData] = useState(null);
@@ -14,7 +14,7 @@ export default function DashboardHome() {
         const fetchDashboardData = async () => {
             try {
                 const token = localStorage.getItem('jwt_token');
-                const response = await fetch(`${BASE_URL}/admin/dashboard?range=7d`, {
+                const response = await fetch(`${getBaseUrl()}/admin/dashboard?range=7d`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

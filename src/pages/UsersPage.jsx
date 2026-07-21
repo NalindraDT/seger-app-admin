@@ -5,7 +5,7 @@ import {
     X, CheckCircle2, AlertTriangle, FileDown, UploadCloud, FileSpreadsheet,
     User as UserIcon, Mail, Phone, Shield, TrendingUp, Flame, Trash2, Plus
 } from 'lucide-react';
-import { BASE_URL } from '../utils/apiConfig';
+import { getBaseUrl } from '../utils/apiConfig';
 
 export default function UsersPage() {
     const [users, setUsers] = useState([]);
@@ -50,7 +50,7 @@ export default function UsersPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/users?page=${currentPage}&limit=10`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users?page=${currentPage}&limit=10`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -69,7 +69,7 @@ export default function UsersPage() {
     const fetchStats = async () => {
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/dashboard?range=7d`, {
+            const response = await fetch(`${getBaseUrl()}/admin/dashboard?range=7d`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -87,7 +87,7 @@ export default function UsersPage() {
     const fetchDepartments = async () => {
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/departments?page=1&limit=100`, {
+            const response = await fetch(`${getBaseUrl()}/admin/departments?page=1&limit=100`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -133,7 +133,7 @@ export default function UsersPage() {
             if (addFormData.phone_number) payload.phone_number = addFormData.phone_number;
             if (addFormData.department_id) payload.department_id = addFormData.department_id;
 
-            const response = await fetch(`${BASE_URL}/admin/users`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -178,7 +178,7 @@ export default function UsersPage() {
         setIsFetchingDetail(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/users/${userId}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users/${userId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -237,7 +237,7 @@ export default function UsersPage() {
             const formDataUpload = new FormData();
             formDataUpload.append('file', selectedFile);
 
-            const response = await fetch(`${BASE_URL}/admin/users/import`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users/import`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formDataUpload
@@ -276,7 +276,7 @@ export default function UsersPage() {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/users/${selectedUserId}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users/${selectedUserId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(formData)
@@ -302,7 +302,7 @@ export default function UsersPage() {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${BASE_URL}/admin/users/${userToDelete.id}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users/${userToDelete.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
