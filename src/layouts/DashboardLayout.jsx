@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, ClipboardList, Users, Activity,
-    BookOpen, Gift, BarChart2, Settings, Bell, LogOut, X, 
-    ClockAlert, Medal, CalendarDays, Flame, ChevronDown, Trophy, Building2
+    BookOpen, Gift, BarChart2, Settings, LogOut, X,
+    ClockAlert, Medal, CalendarDays, Flame, ChevronDown, Trophy, Building2, Landmark
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';
 
@@ -30,6 +30,7 @@ export default function DashboardLayout() {
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { name: 'Submissions', path: '/submissions', icon: ClipboardList },
         { name: 'Users', path: '/users', icon: Users },
+        { name: 'Perusahaan', path: '/companies', icon: Landmark },
         { name: 'Departemen', path: '/departments', icon: Building2 },
         {
             name: 'Gamifikasi',

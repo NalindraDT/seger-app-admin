@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     CalendarDays, Plus, Edit, Trash2, Eye, ChevronLeft, ChevronRight,
-    Image as ImageIcon, X, Palette, UploadCloud, CheckCircle2,
+    Image as ImageIcon, X, UploadCloud, CheckCircle2,
     Calendar, Clock, Info, ChevronDown, Flag
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';
@@ -25,10 +25,13 @@ export default function EventsPage() {
     // FORM DATA
     const [formData, setFormData] = useState({
         name: '',
+        description: '',
+        rules: '',
         color_theme: '#5A2EFF',
         start_at: '',
         end_at: '',
-        status: 'active', // Default status
+        published_at: '',
+        status: 'active',
         banner_image: null,
         imagePreview: null
     });
@@ -77,7 +80,9 @@ export default function EventsPage() {
 
     const openAddModal = () => {
         setFormData({
-            name: '', color_theme: '#5A2EFF', start_at: '', end_at: '', status: 'active', banner_image: null, imagePreview: null
+            name: '', description: '', rules: '', color_theme: '#5A2EFF',
+            start_at: '', end_at: '', published_at: '', status: 'active',
+            banner_image: null, imagePreview: null
         });
         setIsAddModalOpen(true);
     };
@@ -86,9 +91,12 @@ export default function EventsPage() {
         setSelectedEvent(event);
         setFormData({
             name: event.name,
+            description: event.description || '',
+            rules: event.rules || '',
             color_theme: event.color_theme || '#5A2EFF',
             start_at: formatDateTimeLocal(event.start_at),
             end_at: formatDateTimeLocal(event.end_at),
+            published_at: formatDateTimeLocal(event.published_at),
             status: event.status || 'active',
             banner_image: null,
             imagePreview: event.banner_image_url
@@ -120,6 +128,9 @@ export default function EventsPage() {
             data.append('color_theme', formData.color_theme);
             data.append('start_at', new Date(formData.start_at).toISOString());
             data.append('end_at', new Date(formData.end_at).toISOString());
+            if (formData.description) data.append('description', formData.description);
+            if (formData.rules) data.append('rules', formData.rules);
+            if (formData.published_at) data.append('published_at', new Date(formData.published_at).toISOString());
 
             // Saat Add, otomatis active. Saat edit, ambil dari pilihan form.
             if (mode === 'add') {
@@ -304,19 +315,34 @@ export default function EventsPage() {
                                         </div>
                                     </div>
 
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Deskripsi Event</label>
+                                        <textarea rows="3" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] resize-none" placeholder="Penjelasan singkat event..." />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Aturan Event</label>
+                                        <textarea rows="3" value={formData.rules} onChange={(e) => setFormData({ ...formData, rules: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] resize-none" placeholder="Aturan dan ketentuan event..." />
+                                    </div>
+
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Waktu Mulai</label>
+                                            <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Waktu Pelaksanaan Mulai</label>
                                             <div className="relative">
                                                 <input type="datetime-local" required value={formData.start_at} onChange={(e) => setFormData({ ...formData, start_at: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Waktu Selesai</label>
+                                            <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Waktu Pelaksanaan Selesai</label>
                                             <div className="relative">
                                                 <input type="datetime-local" required value={formData.end_at} onChange={(e) => setFormData({ ...formData, end_at: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Tanggal Launching di App</label>
+                                        <input type="datetime-local" required value={formData.published_at} onChange={(e) => setFormData({ ...formData, published_at: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -437,17 +463,40 @@ export default function EventsPage() {
                                 <div className="grid grid-cols-2 gap-4 pt-2">
                                     <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
                                         <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
-                                            <Calendar className="w-3.5 h-3.5 mr-1.5" /> Mulai
+                                            <Calendar className="w-3.5 h-3.5 mr-1.5" /> Pelaksanaan Mulai
                                         </div>
                                         <p className="text-sm font-black text-gray-800">{formatDate(selectedEvent.start_at)}</p>
                                     </div>
                                     <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
                                         <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
-                                            <Clock className="w-3.5 h-3.5 mr-1.5" /> Berakhir
+                                            <Clock className="w-3.5 h-3.5 mr-1.5" /> Pelaksanaan Selesai
                                         </div>
                                         <p className="text-sm font-black text-gray-800">{formatDate(selectedEvent.end_at)}</p>
                                     </div>
                                 </div>
+
+                                {selectedEvent.published_at && (
+                                    <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
+                                        <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
+                                            <CalendarDays className="w-3.5 h-3.5 mr-1.5" /> Launching di App
+                                        </div>
+                                        <p className="text-sm font-black text-gray-800">{formatDate(selectedEvent.published_at)}</p>
+                                    </div>
+                                )}
+
+                                {selectedEvent.description && (
+                                    <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Deskripsi</p>
+                                        <p className="text-sm text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">{selectedEvent.description}</p>
+                                    </div>
+                                )}
+
+                                {selectedEvent.rules && (
+                                    <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Aturan</p>
+                                        <p className="text-sm text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">{selectedEvent.rules}</p>
+                                    </div>
+                                )}
 
                                 <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100 flex items-center justify-between">
                                     <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Tema Warna Terpilih</span>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-    Filter, Plus, Edit, Trash2, Link2, ChevronLeft, ChevronRight,
+    Plus, Edit, Trash2, ChevronLeft, ChevronRight,
     Image as ImageIcon, X, Gift, Coins, Package, AlignLeft, ChevronDown,
     UploadCloud, CheckCircle2, Eye, Info, AlertTriangle, CheckSquare, Clock
 } from 'lucide-react';
@@ -91,6 +91,16 @@ export default function RewardsPage() {
     const showToast = (message) => {
         setToastMessage(message);
         setTimeout(() => setToastMessage(''), 4000);
+    };
+
+    const getRedemptionStatusStyle = (status) => {
+        switch ((status || '').toUpperCase()) {
+            case 'PENDING': return 'bg-orange-50 text-orange-600';
+            case 'PROCESSED': return 'bg-green-50 text-green-600';
+            case 'REJECTED': return 'bg-red-50 text-red-600';
+            case 'RECEIVED': return 'bg-indigo-50 text-indigo-600';
+            default: return 'bg-gray-50 text-gray-600';
+        }
     };
 
     // =========================================================================
@@ -190,7 +200,7 @@ export default function RewardsPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
-                    status: 'processed', // Sesuai instruksi: admin hanya bisa ACC/Processed
+                    status: 'processed',
                     admin_note: adminNote || 'Hadiah telah diproses dan siap diberikan.'
                 })
             });
@@ -204,6 +214,42 @@ export default function RewardsPage() {
                 showToast('Penukaran hadiah berhasil di-ACC!');
             } else {
                 alert(json.message || "Gagal memproses penukaran.");
+            }
+        } catch (error) {
+            alert("Terjadi kesalahan jaringan.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleRejectRedemption = async () => {
+        if (!selectedRedemption) return;
+        if (!adminNote.trim()) {
+            alert('Catatan penolakan wajib diisi sebelum menolak penukaran hadiah.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const response = await fetch(`${getBaseUrl()}/admin/reward-redemptions/${selectedRedemption.id}/process`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    status: 'rejected',
+                    admin_note: adminNote.trim(),
+                })
+            });
+
+            const json = await response.json();
+            if (json.success || json.status === 'success') {
+                setIsProcessModalOpen(false);
+                setSelectedRedemption(null);
+                setAdminNote('');
+                fetchRedemptions();
+                showToast('Penukaran hadiah ditolak.');
+            } else {
+                alert(json.message || "Gagal menolak penukaran.");
             }
         } catch (error) {
             alert("Terjadi kesalahan jaringan.");
@@ -345,9 +391,14 @@ export default function RewardsPage() {
                                                 {new Date(item.requested_at).toLocaleString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className={`px-2.5 py-1.5 rounded-md text-[9px] font-extrabold tracking-wider uppercase ${item.status === 'PENDING' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>
+                                                <span className={`px-2.5 py-1.5 rounded-md text-[9px] font-extrabold tracking-wider uppercase ${getRedemptionStatusStyle(item.status)}`}>
                                                     {item.status}
                                                 </span>
+                                                {item.status === 'RECEIVED' && item.received_at && (
+                                                    <div className="text-[10px] text-indigo-500 font-medium mt-1">
+                                                        Diterima: {new Date(item.received_at).toLocaleString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 {item.status === 'PENDING' ? (
@@ -392,7 +443,15 @@ export default function RewardsPage() {
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
                         <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-[#F8F9FC]">
                             <div className="flex items-center space-x-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedRedemption.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                    selectedRedemption.status === 'PENDING'
+                                        ? 'bg-orange-100 text-orange-600'
+                                        : selectedRedemption.status === 'REJECTED'
+                                            ? 'bg-red-100 text-red-600'
+                                            : selectedRedemption.status === 'RECEIVED'
+                                                ? 'bg-indigo-100 text-indigo-600'
+                                                : 'bg-green-100 text-green-600'
+                                }`}>
                                     {selectedRedemption.status === 'PENDING' ? <Clock className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
                                 </div>
                                 <div>
@@ -440,16 +499,30 @@ export default function RewardsPage() {
                             {selectedRedemption.status === 'PENDING' ? (
                                 <div className="flex space-x-3 pt-2">
                                     <button type="button" onClick={() => setIsProcessModalOpen(false)} disabled={isSubmitting} className="flex-1 px-4 py-3.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 disabled:opacity-50">Batal</button>
+                                    <button type="button" onClick={handleRejectRedemption} disabled={isSubmitting} className="flex-1 px-4 py-3.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-sm disabled:opacity-50">
+                                        {isSubmitting ? 'Memproses...' : 'Tolak'}
+                                    </button>
                                     <button type="submit" disabled={isSubmitting} className="flex-1 px-4 py-3.5 rounded-xl bg-[#10B981] text-white font-bold hover:bg-green-600 shadow-sm flex items-center justify-center disabled:opacity-50">
-                                        {isSubmitting ? 'Memproses...' : <><CheckSquare className="w-4 h-4 mr-2" /> ACC Penukaran</>}
+                                        {isSubmitting ? 'Memproses...' : <><CheckSquare className="w-4 h-4 mr-2" /> ACC</>}
                                     </button>
                                 </div>
                             ) : (
-                                <div className="pt-2">
-                                    <p className="text-xs text-center font-bold text-green-600 mb-4 bg-green-50 py-2 rounded-lg border border-green-100">
-                                        Telah diproses pada: {new Date(selectedRedemption.processed_at).toLocaleString('id-ID')}
-                                    </p>
-                                    {/* <button type="button" onClick={() => setIsProcessModalOpen(false)} className="w-full px-4 py-3.5 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 shadow-sm">Tutup Detail</button> */}
+                                <div className="pt-2 space-y-3">
+                                    {selectedRedemption.status === 'PROCESSED' && selectedRedemption.processed_at && (
+                                        <p className="text-xs text-center font-bold text-green-600 bg-green-50 py-2 rounded-lg border border-green-100">
+                                            Telah diproses pada: {new Date(selectedRedemption.processed_at).toLocaleString('id-ID')}
+                                        </p>
+                                    )}
+                                    {selectedRedemption.status === 'REJECTED' && (
+                                        <p className="text-xs text-center font-bold text-red-600 bg-red-50 py-2 rounded-lg border border-red-100">
+                                            Penukaran ditolak{selectedRedemption.processed_at ? ` pada: ${new Date(selectedRedemption.processed_at).toLocaleString('id-ID')}` : ''}
+                                        </p>
+                                    )}
+                                    {selectedRedemption.status === 'RECEIVED' && selectedRedemption.received_at && (
+                                        <p className="text-xs text-center font-bold text-indigo-600 bg-indigo-50 py-2 rounded-lg border border-indigo-100">
+                                            Hadiah diterima user pada: {new Date(selectedRedemption.received_at).toLocaleString('id-ID')}
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </form>

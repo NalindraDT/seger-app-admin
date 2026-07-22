@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-    Activity, Clock, Filter, Calendar, Link as LinkIcon,
+    Activity, Clock, Calendar, Link as LinkIcon,
     ChevronLeft, ChevronRight, X, Check, User, Ruler,
     ExternalLink, ZoomIn, FileText, AlertTriangle, CheckCircle2,
     ClipboardList, Image as ImageIcon // <--- INI YANG MEMBUATNYA CRASH, SUDAH DITAMBAHKAN
@@ -74,6 +74,11 @@ export default function SubmissionsPage() {
     const executeVerification = async () => {
         if (!selectedSubmission || !confirmAction) return;
 
+        if (confirmAction === 'rejected' && !reviewNote.trim()) {
+            alert('Catatan penolakan wajib diisi sebelum menolak aktivitas.');
+            return;
+        }
+
         setIsVerifying(true);
         try {
             const token = localStorage.getItem('jwt_token');
@@ -85,7 +90,7 @@ export default function SubmissionsPage() {
                 },
                 body: JSON.stringify({
                     status: confirmAction,
-                    review_note: reviewNote || (confirmAction === 'approved' ? "Telah diverifikasi oleh Admin." : "Ditolak oleh Admin.")
+                    review_note: reviewNote || (confirmAction === 'approved' ? "Telah diverifikasi oleh Admin." : "")
                 })
             });
 
@@ -133,6 +138,18 @@ export default function SubmissionsPage() {
             case 'REJECTED': return 'bg-red-50 text-red-600';
             default: return 'bg-gray-50 text-gray-600';
         }
+    };
+
+    const formatDuration = (minutes, seconds) => {
+        if (seconds != null && seconds > 0) {
+            return `${minutes} menit ${seconds} detik`;
+        }
+        return `${minutes ?? 0} menit`;
+    };
+
+    const formatPace = (pace) => {
+        if (pace == null || pace === '') return null;
+        return `${pace} min/km`;
     };
 
     return (
@@ -194,6 +211,7 @@ export default function SubmissionsPage() {
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">No.</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Nama Peserta</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tipe Aktivitas</th>
+                                <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tanggal Aktivitas</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Jarak / Durasi</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Waktu Submit</th>
@@ -202,9 +220,9 @@ export default function SubmissionsPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
-                                <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data...</td></tr>
+                                <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">Memuat data...</td></tr>
                             ) : submissions.length === 0 ? (
-                                <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Tidak ada data submission.</td></tr>
+                                <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">Tidak ada data submission.</td></tr>
                             ) : (
                                 submissions.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50 transition-colors">
@@ -214,9 +232,17 @@ export default function SubmissionsPage() {
                                             <span className="font-bold text-gray-800">{item.participant_name}</span>
                                         </td>
                                         <td className="px-6 py-4 font-semibold text-gray-700">{item.activity_type}</td>
+                                        <td className="px-6 py-4 text-gray-500 text-xs font-medium">{item.activity_date ? formatDate(item.activity_date) : '-'}</td>
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-gray-800">{item.distance_km} km</div>
-                                            <div className="text-xs text-gray-500">{item.duration_minutes} menit</div>
+                                            <div className="text-xs text-gray-500">
+                                                {formatDuration(item.duration_minutes, item.duration_seconds)}
+                                            </div>
+                                            {formatPace(item.pace_min_per_km) && (
+                                                <div className="text-xs text-[#5A2EFF] font-semibold mt-0.5">
+                                                    Pace: {formatPace(item.pace_min_per_km)}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase ${getStatusStyle(item.status)}`}>{item.status}</span>
@@ -318,6 +344,13 @@ export default function SubmissionsPage() {
                                             </div>
                                         </div>
                                         <div className="col-span-1">
+                                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Tanggal Aktivitas</label>
+                                            <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
+                                                <Calendar className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
+                                                <span className="text-sm font-semibold text-gray-800">{selectedSubmission.activity_date ? formatDate(selectedSubmission.activity_date) : '-'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="col-span-1">
                                             <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Jarak (km)</label>
                                             <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
                                                 <Ruler className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
@@ -328,9 +361,20 @@ export default function SubmissionsPage() {
                                             <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Durasi</label>
                                             <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
                                                 <Clock className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                <span className="text-sm font-semibold text-gray-800">{selectedSubmission.duration_minutes} min</span>
+                                                <span className="text-sm font-semibold text-gray-800">
+                                                    {formatDuration(selectedSubmission.duration_minutes, selectedSubmission.duration_seconds)}
+                                                </span>
                                             </div>
                                         </div>
+                                        {formatPace(selectedSubmission.pace_min_per_km) && (
+                                            <div className="col-span-1">
+                                                <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Pace</label>
+                                                <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
+                                                    <Activity className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
+                                                    <span className="text-sm font-semibold text-gray-800">{formatPace(selectedSubmission.pace_min_per_km)}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="col-span-1">
                                             <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Waktu Submit</label>
                                             <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">

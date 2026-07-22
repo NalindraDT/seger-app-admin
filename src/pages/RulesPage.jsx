@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-    Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight,
+    Search, Plus, Edit, Trash2,
     X, MapPin, ChevronDown, CheckCircle2, AlertTriangle
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';

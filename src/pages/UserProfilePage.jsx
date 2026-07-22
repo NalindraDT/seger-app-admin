@@ -3,7 +3,7 @@ import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import {
     User, Mail, Phone, Calendar, Clock,
-    Camera, CheckCircle2, Edit3, ShieldCheck, Info, X, Save, Loader2, Crop, Lock, KeyRound, Eye
+    Camera, CheckCircle2, Edit3, ShieldCheck, Info, X, Save, Loader2, Crop, Lock, KeyRound, Eye, Landmark
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';
 
@@ -453,6 +453,17 @@ export default function UserProfilePage() {
                                     {profile.phoneNumber ? profile.phoneNumber : <span className="text-gray-400 italic">Belum diatur</span>}
                                 </p>
                             )}
+                        </div>
+
+                        <div className="bg-[#F8F9FC] rounded-2xl p-4 border border-gray-100">
+                            <label className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">
+                                <Landmark className="w-3.5 h-3.5 mr-1.5" /> Perusahaan
+                            </label>
+                            <p className="text-sm font-bold text-gray-900">
+                                {profile.companyName || profile.company?.name
+                                    ? (profile.companyName || profile.company?.name)
+                                    : <span className="text-gray-400 italic">Belum diatur</span>}
+                            </p>
                         </div>
 
                         <div className="bg-[#F8F9FC] rounded-2xl p-4 border border-gray-100">

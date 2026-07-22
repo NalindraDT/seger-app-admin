@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import {
-    Users, UserCheck, Search, Upload, Edit, Eye, EyeOff, ChevronLeft, ChevronRight,
+    Users, Search, Upload, Edit, Eye, EyeOff, ChevronLeft, ChevronRight,
     X, CheckCircle2, AlertTriangle, FileDown, UploadCloud, FileSpreadsheet,
-    User as UserIcon, Mail, Phone, Shield, TrendingUp, Flame, Trash2, Plus
+    User as UserIcon, Mail, TrendingUp, Flame, Trash2, Plus
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';
 
@@ -17,11 +17,12 @@ export default function UsersPage() {
 
     const [stats, setStats] = useState({ total: 0, active: 0 });
     const [departments, setDepartments] = useState([]);
+    const [companies, setCompanies] = useState([]);
 
     // STATE UNTUK MODAL TAMBAH USER MANUAl
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [addFormData, setAddFormData] = useState({
-        email: '', password: '', full_name: '', phone_number: '', department_id: '', role: 'participant'
+        email: '', password: '', full_name: '', phone_number: '', department_id: '', company_id: '', role: 'participant'
     });
     const [addFormErrors, setAddFormErrors] = useState({});
     const [showAddPassword, setShowAddPassword] = useState(false);
@@ -29,7 +30,7 @@ export default function UsersPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [formData, setFormData] = useState({
-        full_name: '', phone_number: '', department_id: '', is_active: true, role: 'participant'
+        full_name: '', phone_number: '', department_id: '', company_id: '', is_active: true, role: 'participant'
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,10 +100,26 @@ export default function UsersPage() {
         }
     };
 
+    const fetchCompanies = async () => {
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const response = await fetch(`${getBaseUrl()}/admin/companies?page=1&limit=100`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const json = await response.json();
+            if (json.success) {
+                setCompanies(json.data.items);
+            }
+        } catch (error) {
+            console.error("Gagal mengambil data perusahaan", error);
+        }
+    };
+
     useEffect(() => {
         fetchUsers();
         fetchStats();
         fetchDepartments();
+        fetchCompanies();
     }, [currentPage]);
 
     const showToast = (message) => {
@@ -112,7 +129,7 @@ export default function UsersPage() {
 
     const closeAddModal = () => {
         setIsAddModalOpen(false);
-        setAddFormData({ email: '', password: '', full_name: '', phone_number: '', department_id: '', role: 'participant' });
+        setAddFormData({ email: '', password: '', full_name: '', phone_number: '', department_id: '', company_id: '', role: 'participant' });
         setAddFormErrors({});
         setShowAddPassword(false);
     };
@@ -132,6 +149,7 @@ export default function UsersPage() {
             };
             if (addFormData.phone_number) payload.phone_number = addFormData.phone_number;
             if (addFormData.department_id) payload.department_id = addFormData.department_id;
+            if (addFormData.company_id) payload.company_id = addFormData.company_id;
 
             const response = await fetch(`${getBaseUrl()}/admin/users`, {
                 method: 'POST',
@@ -265,6 +283,7 @@ export default function UsersPage() {
             full_name: user.fullName,
             phone_number: user.phoneNumber || '',
             department_id: user.departmentId || '',
+            company_id: user.companyId || '',
             is_active: user.isActive,
             role: user.role || 'participant'
         });
@@ -386,7 +405,7 @@ export default function UsersPage() {
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center w-16">No.</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Nama user</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Role user</th>
-                                {/* TAMBAHAN: Kolom Departemen */}
+                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Perusahaan</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Departemen</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">Point</th>
                                 <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">EXP</th>
@@ -397,9 +416,9 @@ export default function UsersPage() {
                         <tbody className="divide-y divide-gray-100">
                             {/* NOTE: colSpan diubah dari 7 menjadi 8 karena ada penambahan kolom */}
                             {isLoading ? (
-                                <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">Memuat data user...</td></tr>
+                                <tr><td colSpan="9" className="text-center py-10 text-gray-500 font-medium">Memuat data user...</td></tr>
                             ) : filteredUsers.length === 0 ? (
-                                <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">User tidak ditemukan.</td></tr>
+                                <tr><td colSpan="9" className="text-center py-10 text-gray-500 font-medium">User tidak ditemukan.</td></tr>
                             ) : filteredUsers.map((user, index) => (
                                 <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * 10) + index + 1}</td>
@@ -426,8 +445,13 @@ export default function UsersPage() {
                                             {user.role}
                                         </span>
                                     </td>
-                                    
-                                    {/* TAMBAHAN: Data Departemen */}
+
+                                    <td className="px-6 py-4">
+                                        <span className="font-medium text-gray-700">
+                                            {user.companyName || <span className="text-gray-400 italic">Belum diatur</span>}
+                                        </span>
+                                    </td>
+
                                     <td className="px-6 py-4">
                                         <span className="font-medium text-gray-700">
                                             {user.departmentName || <span className="text-gray-400 italic">Belum diatur</span>}
@@ -456,7 +480,7 @@ export default function UsersPage() {
                     </table>
                 </div>
                 <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
-                    <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages}</p>
+                    <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages} · {totalItems} pengguna</p>
                     <div className="flex space-x-1">
                         <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
                         <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{currentPage}</button>
@@ -537,6 +561,15 @@ export default function UsersPage() {
                                         >
                                             <option value="participant">Participant</option>
                                             <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-span-2 md:col-span-1">
+                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Perusahaan</label>
+                                        <select value={addFormData.company_id} onChange={(e) => setAddFormData({ ...addFormData, company_id: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
+                                            <option value="">Pilih Perusahaan (Opsional)...</option>
+                                            {companies.map((company) => (
+                                                <option key={company.id} value={company.id}>{company.name}</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
@@ -733,7 +766,16 @@ export default function UsersPage() {
                                     <input type="tel" value={formData.phone_number} onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
                                 </div>
                                 
-                                {/* DROPDOWN DEPARTEMEN */}
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Perusahaan</label>
+                                    <select value={formData.company_id} onChange={(e) => setFormData({ ...formData, company_id: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
+                                        <option value="">Pilih Perusahaan (Opsional)...</option>
+                                        {companies.map((company) => (
+                                            <option key={company.id} value={company.id}>{company.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 <div>
                                     <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Departemen</label>
                                     <select required value={formData.department_id} onChange={(e) => setFormData({ ...formData, department_id: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">

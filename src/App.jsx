@@ -13,14 +13,8 @@ import BadgesPage from './pages/BadgesPage';
 import EventsPage from './pages/EventsPage';
 import StreakPage from './pages/StreakPage';
 import UserProfilePage from './pages/UserProfilePage';
-import DepartmentsPage from './pages/DepartmentsPage'
-
-const DummyPage = ({ title }) => (
-  <div>
-    <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-    <p className="text-gray-500 mt-2">Halaman ini sedang dalam tahap pengembangan.</p>
-  </div>
-);
+import DepartmentsPage from './pages/DepartmentsPage';
+import CompaniesPage from './pages/CompaniesPage';
 
 function App() {
   return (
@@ -46,6 +40,7 @@ function App() {
           <Route path="/settings" element={<SettingsPage/>} />
           <Route path="/profile" element={<UserProfilePage />} />
           <Route path="/departments" element={<DepartmentsPage />} />
+          <Route path="/companies" element={<CompaniesPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

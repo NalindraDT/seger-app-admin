@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-    Award, Plus, Edit, Trash2, ChevronLeft, ChevronRight,
-    ImageIcon, X, Star, Hash, UploadCloud, CheckCircle2,
+    Award, Plus, Edit, Trash2,
+    X, Star, Hash, UploadCloud, CheckCircle2,
     ShieldCheck, Eye, Info, AlertTriangle
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';

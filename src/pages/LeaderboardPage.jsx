@@ -1,9 +1,68 @@
 import { useState, useEffect } from 'react';
 import {
-    Trophy, Medal, Crown, Search, ChevronLeft, ChevronRight, Award,
-    CalendarDays, Filter, ChevronDown
+    Trophy, Crown, ChevronLeft, ChevronRight, Award,
+    CalendarDays, Filter, ChevronDown, Building2, Users
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';
+
+const getEntryXp = (entry, isDepartmentView) => {
+    if (isDepartmentView) {
+        return Number(entry.total_xp ?? entry.xp ?? 0);
+    }
+    return Number(entry.xp ?? 0);
+};
+
+function PodiumItem({ entry, rank, isDepartmentView, getItemName, getItemAvatar }) {
+    if (!entry) return <div className="w-32 h-32 opacity-0"></div>;
+
+    const isFirst = rank === 1;
+    const isSecond = rank === 2;
+
+    const ringColor = isFirst ? 'ring-yellow-400' : isSecond ? 'ring-gray-300' : 'ring-orange-400';
+    const bgColor = isFirst ? 'bg-yellow-50' : isSecond ? 'bg-gray-50' : 'bg-orange-50';
+    const textColor = isFirst ? 'text-yellow-600' : isSecond ? 'text-gray-600' : 'text-orange-600';
+    const heightClass = isFirst ? 'h-48' : isSecond ? 'h-40' : 'h-32';
+    const displayName = getItemName(entry);
+
+    return (
+        <div className={`flex flex-col items-center justify-end ${isFirst ? 'order-2 z-10 -mt-8' : isSecond ? 'order-1' : 'order-3'}`}>
+            {isFirst && <Crown className="w-10 h-10 text-yellow-500 mb-2 drop-shadow-md animate-bounce" />}
+            <div className="relative mb-4">
+                {isDepartmentView ? (
+                    <div className={`rounded-full object-cover border-4 border-white shadow-lg ring-4 ${ringColor} ${isFirst ? 'w-24 h-24' : 'w-20 h-20'} bg-indigo-50 flex items-center justify-center`}>
+                        <Building2 className={`${isFirst ? 'w-10 h-10' : 'w-8 h-8'} text-[#5A2EFF]`} />
+                    </div>
+                ) : (
+                    <img
+                        src={getItemAvatar(entry)}
+                        alt={displayName}
+                        className={`rounded-full object-cover border-4 border-white shadow-lg ring-4 ${ringColor} ${isFirst ? 'w-24 h-24' : 'w-20 h-20'}`}
+                        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${displayName}&background=random&size=128`; }}
+                    />
+                )}
+                <div className={`absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full flex items-center justify-center font-black text-white text-sm shadow-md ${isFirst ? 'bg-yellow-500' : isSecond ? 'bg-gray-400' : 'bg-orange-500'}`}>
+                    {rank}
+                </div>
+            </div>
+            <div className={`w-32 ${bgColor} border border-white rounded-t-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col items-center justify-start pt-4 ${heightClass}`}>
+                <p className="font-extrabold text-gray-900 truncate w-28 text-center">{displayName}</p>
+                {isDepartmentView && (
+                    <p className="text-[10px] text-gray-500 mt-1">
+                        {entry.active_member_count ?? 0} anggota aktif · {(entry.member_count ?? 0)} total
+                    </p>
+                )}
+                <p className={`text-xs font-bold mt-1 ${textColor}`}>
+                    {isDepartmentView
+                        ? `${entry.active_member_count ?? 0} aktif`
+                        : `${getEntryXp(entry, isDepartmentView).toLocaleString()} EXP`}
+                </p>
+                {isDepartmentView && (
+                    <p className="text-[10px] text-gray-400 mt-0.5">{getEntryXp(entry, isDepartmentView).toLocaleString()} EXP total</p>
+                )}
+            </div>
+        </div>
+    );
+}
 
 export default function LeaderboardPage() {
     // STATE GLOBAL
@@ -12,9 +71,13 @@ export default function LeaderboardPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
+    const [currentDepartment, setCurrentDepartment] = useState(null);
+    const [selectedDepartment, setSelectedDepartment] = useState(null);
+    const [departmentMembers, setDepartmentMembers] = useState([]);
+    const [isMembersLoading, setIsMembersLoading] = useState(false);
 
     // STATE TABS & FILTERS
-    const [activeTab, setActiveTab] = useState('regular'); // 'regular' | 'event'
+    const [activeTab, setActiveTab] = useState('individual'); // 'individual' | 'department' | 'event'
     const [period, setPeriod] = useState('monthly'); // 'daily' | 'weekly' | 'monthly' | 'annual'
     const [events, setEvents] = useState([]);
     const [selectedEventId, setSelectedEventId] = useState('');
@@ -36,15 +99,46 @@ export default function LeaderboardPage() {
         }
     };
 
-    // 2. FETCH DATA LEADERBOARD UTAMA
+    const fetchDepartmentMembers = async (department) => {
+        if (!department?.department_id) return;
+        setSelectedDepartment(department);
+        setIsMembersLoading(true);
+        setDepartmentMembers([]);
+
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const response = await fetch(
+                `${getBaseUrl()}/leaderboard/departments/${department.department_id}/${period}?page=1&limit=20`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            const json = await response.json();
+            if (json.success) {
+                setDepartmentMembers(json.data.items ?? []);
+            }
+        } catch (error) {
+            console.error('Gagal mengambil anggota departemen', error);
+        } finally {
+            setIsMembersLoading(false);
+        }
+    };
+
+    const closeDepartmentMembers = () => {
+        setSelectedDepartment(null);
+        setDepartmentMembers([]);
+    };
+
     const fetchLeaderboard = async () => {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
             let url = '';
 
-            if (activeTab === 'regular') {
-                url = `${getBaseUrl()}/leaderboard/${period}?page=${currentPage}&limit=10`;
+            if (activeTab === 'individual') {
+                url = period === 'annual'
+                    ? `${getBaseUrl()}/leaderboard/annual?page=${currentPage}&limit=10`
+                    : `${getBaseUrl()}/leaderboard/${period}?page=${currentPage}&limit=10`;
+            } else if (activeTab === 'department') {
+                url = `${getBaseUrl()}/leaderboard/departments/${period}?page=${currentPage}&limit=10`;
             } else if (activeTab === 'event') {
                 if (!selectedEventId) {
                     setLeaderboard([]);
@@ -62,16 +156,19 @@ export default function LeaderboardPage() {
 
             if (json.success) {
                 setLeaderboard(json.data.items || []);
+                setCurrentDepartment(json.data.current_department ?? null);
                 if (json.data.pagination) {
                     setTotalPages(json.data.pagination.totalPages);
                     setTotalItems(json.data.pagination.totalItems);
                 }
             } else {
                 setLeaderboard([]);
+                setCurrentDepartment(null);
             }
         } catch (error) {
             console.error("Gagal mengambil data leaderboard", error);
             setLeaderboard([]);
+            setCurrentDepartment(null);
         } finally {
             setIsLoading(false);
         }
@@ -91,39 +188,17 @@ export default function LeaderboardPage() {
     const top3 = leaderboard.slice(0, 3);
     const others = leaderboard; 
 
-    // Komponen Helper untuk Podium
-    const PodiumItem = ({ user, rank }) => {
-        if (!user) return <div className="w-32 h-32 opacity-0"></div>; 
+    const isDepartmentView = activeTab === 'department';
 
-        const isFirst = rank === 1;
-        const isSecond = rank === 2;
-        const isThird = rank === 3;
+    const getItemKey = (item) => isDepartmentView ? (item.department_id || item.rank) : item.user_id;
 
-        const ringColor = isFirst ? 'ring-yellow-400' : isSecond ? 'ring-gray-300' : 'ring-orange-400';
-        const bgColor = isFirst ? 'bg-yellow-50' : isSecond ? 'bg-gray-50' : 'bg-orange-50';
-        const textColor = isFirst ? 'text-yellow-600' : isSecond ? 'text-gray-600' : 'text-orange-600';
-        const heightClass = isFirst ? 'h-48' : isSecond ? 'h-40' : 'h-32';
+    const getItemName = (item) => isDepartmentView ? (item.department_name || 'Departemen') : item.full_name;
 
-        return (
-            <div className={`flex flex-col items-center justify-end ${isFirst ? 'order-2 z-10 -mt-8' : isSecond ? 'order-1' : 'order-3'}`}>
-                {isFirst && <Crown className="w-10 h-10 text-yellow-500 mb-2 drop-shadow-md animate-bounce" />}
-                <div className="relative mb-4">
-                    <img
-                        src={user.profile_photo_url || `https://ui-avatars.com/api/?name=${user.full_name}&background=random&size=128`}
-                        alt={user.full_name}
-                        className={`rounded-full object-cover border-4 border-white shadow-lg ring-4 ${ringColor} ${isFirst ? 'w-24 h-24' : 'w-20 h-20'}`}
-                        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${user.full_name}&background=random&size=128`; }}
-                    />
-                    <div className={`absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full flex items-center justify-center font-black text-white text-sm shadow-md ${isFirst ? 'bg-yellow-500' : isSecond ? 'bg-gray-400' : 'bg-orange-500'}`}>
-                        {rank}
-                    </div>
-                </div>
-                <div className={`w-32 ${bgColor} border border-white rounded-t-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col items-center justify-start pt-4 ${heightClass}`}>
-                    <p className="font-extrabold text-gray-900 truncate w-28 text-center">{user.full_name}</p>
-                    <p className={`text-xs font-bold mt-1 ${textColor}`}>{user.xp.toLocaleString()} EXP</p>
-                </div>
-            </div>
-        );
+    const getItemAvatar = (item) => {
+        if (isDepartmentView) {
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(item.department_name || 'Dept')}&background=5A2EFF&color=fff&size=128`;
+        }
+        return item.profile_photo_url || `https://ui-avatars.com/api/?name=${item.full_name}&background=random&size=128`;
     };
 
     return (
@@ -139,10 +214,16 @@ export default function LeaderboardPage() {
             <div className="border-b border-gray-200">
                 <nav className="flex space-x-8">
                     <button
-                        onClick={() => { setActiveTab('regular'); setCurrentPage(1); }}
-                        className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors flex items-center ${activeTab === 'regular' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                        onClick={() => { setActiveTab('individual'); setCurrentPage(1); }}
+                        className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors flex items-center ${activeTab === 'individual' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                     >
-                        <Trophy className="w-4 h-4 mr-2" /> Peringkat Umum
+                        <Users className="w-4 h-4 mr-2" /> Individual
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('department'); setCurrentPage(1); }}
+                        className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors flex items-center ${activeTab === 'department' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                    >
+                        <Building2 className="w-4 h-4 mr-2" /> Departemen
                     </button>
                     <button
                         onClick={() => { setActiveTab('event'); setCurrentPage(1); }}
@@ -159,7 +240,7 @@ export default function LeaderboardPage() {
                     <Filter className="w-4 h-4 mr-2" /> Filter Data:
                 </div>
 
-                {activeTab === 'regular' ? (
+                {(activeTab === 'individual' || activeTab === 'department') ? (
                     <div className="flex bg-[#F8F9FC] p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
                         {[
                             { id: 'daily', label: 'Harian' },
@@ -209,7 +290,7 @@ export default function LeaderboardPage() {
                     <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-gray-900">Belum ada data</h3>
                     <p className="text-sm text-gray-500 mt-1">
-                        Belum ada pengguna yang mendapatkan EXP di {activeTab === 'event' ? 'event ini' : 'periode ini'}.
+                        Belum ada data {isDepartmentView ? 'departemen' : 'pengguna'} yang mendapatkan EXP di {activeTab === 'event' ? 'event ini' : 'periode ini'}.
                     </p>
                 </div>
             ) : (
@@ -223,9 +304,9 @@ export default function LeaderboardPage() {
                             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-b from-yellow-50 to-transparent rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
                             <div className="flex items-end justify-center gap-2 sm:gap-6 relative z-10 mt-12">
-                                {top3[1] && <PodiumItem user={top3[1]} rank={2} />}
-                                {top3[0] && <PodiumItem user={top3[0]} rank={1} />}
-                                {top3[2] && <PodiumItem user={top3[2]} rank={3} />}
+                                {top3[1] && <PodiumItem entry={top3[1]} rank={2} isDepartmentView={isDepartmentView} getItemName={getItemName} getItemAvatar={getItemAvatar} />}
+                                {top3[0] && <PodiumItem entry={top3[0]} rank={1} isDepartmentView={isDepartmentView} getItemName={getItemName} getItemAvatar={getItemAvatar} />}
+                                {top3[2] && <PodiumItem entry={top3[2]} rank={3} isDepartmentView={isDepartmentView} getItemName={getItemName} getItemAvatar={getItemAvatar} />}
                             </div>
                         </div>
                     )}
@@ -236,8 +317,8 @@ export default function LeaderboardPage() {
                     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm mt-6">
                         <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-[#F8F9FC]">
                             <h3 className="font-bold text-gray-900 flex items-center">
-                                <Award className="w-4 h-4 text-[#5A2EFF] mr-2" /> 
-                                {activeTab === 'event' ? 'Daftar Peringkat Event' : 'Daftar Peringkat Keseluruhan'}
+                                <Award className="w-4 h-4 text-[#5A2EFF] mr-2" />
+                                {activeTab === 'event' ? 'Daftar Peringkat Event' : isDepartmentView ? 'Departemen Paling Aktif' : 'Daftar Peringkat Individual'}
                             </h3>
                         </div>
 
@@ -246,13 +327,24 @@ export default function LeaderboardPage() {
                                 <thead className="bg-white border-b border-gray-100">
                                     <tr>
                                         <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-center w-20">Rank</th>
-                                        <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider">User</th>
+                                        <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider">{isDepartmentView ? 'Departemen' : 'User'}</th>
+                                        {isDepartmentView ? (
+                                            <>
+                                                <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-center">Anggota</th>
+                                                <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-center">Aktif</th>
+                                                <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-right">Rata-rata EXP</th>
+                                            </>
+                                        ) : null}
                                         <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-right pr-10">Total EXP</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {others.map((item) => (
-                                        <tr key={item.user_id} className="hover:bg-indigo-50/30 transition-colors group">
+                                        <tr
+                                            key={getItemKey(item)}
+                                            className={`transition-colors group ${isDepartmentView ? 'hover:bg-indigo-50/50 cursor-pointer' : 'hover:bg-indigo-50/30'}`}
+                                            onClick={isDepartmentView ? () => fetchDepartmentMembers(item) : undefined}
+                                        >
                                             <td className="px-6 py-4 text-center">
                                                 {item.rank === 1 ? (
                                                     <span className="inline-flex w-8 h-8 items-center justify-center bg-yellow-100 text-yellow-600 rounded-full font-black text-sm">1</span>
@@ -266,21 +358,39 @@ export default function LeaderboardPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center space-x-4">
-                                                    <img
-                                                        src={item.profile_photo_url || `https://ui-avatars.com/api/?name=${item.full_name}&background=random`}
-                                                        alt="Avatar"
-                                                        className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-200"
-                                                        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${item.full_name}&background=random`; }}
-                                                    />
+                                                    {isDepartmentView ? (
+                                                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shadow-sm">
+                                                            <Building2 className="w-5 h-5 text-[#5A2EFF]" />
+                                                        </div>
+                                                    ) : (
+                                                        <img
+                                                            src={getItemAvatar(item)}
+                                                            alt="Avatar"
+                                                            className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-200"
+                                                            onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${getItemName(item)}&background=random`; }}
+                                                        />
+                                                    )}
                                                     <div>
-                                                        <p className="font-extrabold text-gray-900 group-hover:text-[#5A2EFF] transition-colors">{item.full_name}</p>
-                                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">ID: {item.user_id.substring(0, 8)}...</p>
+                                                        <p className="font-extrabold text-gray-900 group-hover:text-[#5A2EFF] transition-colors">{getItemName(item)}</p>
+                                                        {!isDepartmentView && item.user_id && (
+                                                            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">ID: {item.user_id.substring(0, 8)}...</p>
+                                                        )}
+                                                        {isDepartmentView && (
+                                                            <p className="text-[10px] text-indigo-500 font-semibold">Klik untuk lihat anggota XP tertinggi</p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>
+                                            {isDepartmentView ? (
+                                                <>
+                                                    <td className="px-6 py-4 text-center font-bold text-gray-700">{item.member_count ?? 0}</td>
+                                                    <td className="px-6 py-4 text-center font-bold text-emerald-600">{item.active_member_count ?? 0}</td>
+                                                    <td className="px-6 py-4 text-right font-bold text-gray-700">{(item.avg_xp_per_member ?? 0).toLocaleString()}</td>
+                                                </>
+                                            ) : null}
                                             <td className="px-6 py-4 text-right pr-10">
                                                 <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-50 text-gray-800 font-black text-sm border border-gray-100">
-                                                    {item.xp.toLocaleString()} <span className="text-gray-400 text-xs ml-1">EXP</span>
+                                                    {getEntryXp(item, isDepartmentView).toLocaleString()} <span className="text-gray-400 text-xs ml-1">EXP</span>
                                                 </span>
                                             </td>
                                         </tr>
@@ -302,6 +412,62 @@ export default function LeaderboardPage() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {selectedDepartment && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeDepartmentMembers}>
+                    <div
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-[#F8F9FC]">
+                            <div>
+                                <h3 className="font-bold text-gray-900 flex items-center">
+                                    <Users className="w-4 h-4 text-[#5A2EFF] mr-2" />
+                                    {selectedDepartment.department_name ?? 'Departemen'}
+                                </h3>
+                                <p className="text-xs text-gray-500 mt-1">Anggota dengan XP tertinggi · periode {period}</p>
+                            </div>
+                            <button onClick={closeDepartmentMembers} className="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none">&times;</button>
+                        </div>
+                        <div className="overflow-y-auto max-h-[60vh]">
+                            {isMembersLoading ? (
+                                <div className="p-10 text-center text-gray-500">Memuat anggota...</div>
+                            ) : departmentMembers.length === 0 ? (
+                                <div className="p-10 text-center text-gray-500">Belum ada anggota aktif di departemen ini.</div>
+                            ) : (
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-white border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-6 py-3 text-[11px] uppercase text-gray-500 font-bold w-16 text-center">Rank</th>
+                                            <th className="px-6 py-3 text-[11px] uppercase text-gray-500 font-bold">Nama</th>
+                                            <th className="px-6 py-3 text-[11px] uppercase text-gray-500 font-bold text-right pr-8">XP</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {departmentMembers.map((member) => (
+                                            <tr key={member.user_id} className="hover:bg-indigo-50/30">
+                                                <td className="px-6 py-3 text-center font-bold text-gray-600">{member.rank}</td>
+                                                <td className="px-6 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <img
+                                                            src={member.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`}
+                                                            alt={member.full_name}
+                                                            className="w-9 h-9 rounded-full object-cover border border-gray-200"
+                                                            onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`; }}
+                                                        />
+                                                        <span className="font-semibold text-gray-900">{member.full_name}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3 text-right pr-8 font-bold text-gray-800">{(member.xp ?? 0).toLocaleString()} EXP</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
