@@ -3,8 +3,9 @@ import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import {
     User, Mail, Phone, Calendar, Clock,
-    Camera, CheckCircle2, Edit3, ShieldCheck, Info, X, Save, Loader2, Crop, Lock, KeyRound, Eye, Landmark
+    Camera, CheckCircle2, Edit3, ShieldCheck, Info, Save, Crop, Lock, KeyRound, Landmark, Loader2
 } from 'lucide-react';
+import { PageHeader, Button, FormField, Input, Modal, Toast } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
 export default function UserProfilePage() {
@@ -34,7 +35,6 @@ export default function UserProfilePage() {
     const [authMessage, setAuthMessage] = useState({ type: '', text: '' });
     const [otp, setOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
-    const [showNewPassword, setShowNewPassword] = useState(false);
 
     const fetchProfile = async () => {
         setIsLoading(true);
@@ -300,22 +300,13 @@ export default function UserProfilePage() {
     }
 
     return (
-        <div className="space-y-6 relative max-w-4xl mx-auto">
-            {/* TOAST NOTIFICATION */}
-            {toastMessage && (
-                <div className="fixed top-8 right-8 z-[100] animate-in slide-in-from-right-8 fade-in duration-300">
-                    <div className="bg-white border border-green-100 shadow-xl rounded-xl p-4 flex items-center space-x-3 pr-6">
-                        <div className="bg-green-100 p-1.5 rounded-full"><CheckCircle2 className="w-5 h-5 text-[#10B981]" /></div>
-                        <div><p className="text-sm font-extrabold text-gray-900">Sukses</p><p className="text-xs font-medium text-gray-500">{toastMessage}</p></div>
-                    </div>
-                </div>
-            )}
+        <div className="relative mx-auto max-w-4xl space-y-6">
+            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
 
-            {/* HEADER */}
-            <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Profil Saya</h1>
-                <p className="text-sm text-gray-500 mt-1">Kelola informasi pribadi dan keamanan akun Anda</p>
-            </div>
+            <PageHeader
+                title="Profil Saya"
+                subtitle="Kelola informasi pribadi dan keamanan akun Anda"
+            />
 
             {/* KARTU PROFIL UTAMA */}
             <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
@@ -362,45 +353,33 @@ export default function UserProfilePage() {
                         <div className="flex items-center space-x-3">
                             {isEditing ? (
                                 <>
-                                    <button
-                                        onClick={handleCancelEdit}
-                                        disabled={isSaving}
-                                        className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-200 transition-colors flex items-center shadow-sm disabled:opacity-50"
-                                    >
-                                        <X className="w-4 h-4 mr-2" /> Batal
-                                    </button>
-                                    <button
-                                        onClick={handleSaveProfile}
-                                        disabled={isSaving || !editForm.fullName.trim()}
-                                        className="px-5 py-2.5 bg-[#10B981] text-white font-bold text-sm rounded-xl hover:bg-green-600 transition-colors flex items-center shadow-sm disabled:opacity-50"
-                                    >
-                                        {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                                    <Button variant="secondary" onClick={handleCancelEdit} disabled={isSaving}>
+                                        Batal
+                                    </Button>
+                                    <Button variant="success" icon={Save} onClick={handleSaveProfile} loading={isSaving} disabled={!editForm.fullName.trim()}>
                                         Simpan Perubahan
-                                    </button>
+                                    </Button>
                                 </>
                             ) : (
-                                <button
-                                    onClick={handleEditClick}
-                                    className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-200 transition-colors flex items-center shadow-sm border border-gray-200"
-                                >
-                                    <Edit3 className="w-4 h-4 mr-2" /> Edit Profil
-                                </button>
+                                <Button variant="secondary" icon={Edit3} onClick={handleEditClick}>
+                                    Edit Profil
+                                </Button>
                             )}
                         </div>
                     </div>
 
-                    <div className="mb-8 max-w-xl">
+                    <div className="mb-8 max-w-xl admin-form">
                         {isEditing ? (
-                            <div className="mb-2">
-                                <input
+                            <FormField label="Nama Lengkap" required className="mb-2">
+                                <Input
                                     type="text"
                                     value={editForm.fullName}
                                     onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                                    className="text-3xl font-black text-gray-900 tracking-tight w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all"
+                                    inputClassName="text-xl font-bold"
                                     placeholder="Masukkan nama lengkap..."
                                     autoFocus
                                 />
-                            </div>
+                            </FormField>
                         ) : (
                             <h2 className="text-3xl font-black text-gray-900 tracking-tight flex items-center">
                                 {profile.fullName}
@@ -436,22 +415,26 @@ export default function UserProfilePage() {
                             )}
                         </div>
 
-                        <div className="bg-[#F8F9FC] rounded-2xl p-4 border border-gray-100">
-                            <label className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
-                                <Phone className="w-3.5 h-3.5 mr-1.5" /> Nomor Telepon
-                            </label>
+                        <div className="rounded-2xl border border-gray-100 bg-[#F8F9FC] p-4">
                             {isEditing ? (
-                                <input
-                                    type="tel"
-                                    value={editForm.phoneNumber}
-                                    onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
-                                    className="text-sm font-bold text-gray-900 w-full bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all"
-                                    placeholder="08xxxxxxxxxx"
-                                />
+                                <FormField label="Nomor Telepon">
+                                    <Input
+                                        type="tel"
+                                        icon={Phone}
+                                        value={editForm.phoneNumber}
+                                        onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                                        placeholder="08xxxxxxxxxx"
+                                    />
+                                </FormField>
                             ) : (
-                                <p className="text-sm font-bold text-gray-900">
-                                    {profile.phoneNumber ? profile.phoneNumber : <span className="text-gray-400 italic">Belum diatur</span>}
-                                </p>
+                                <>
+                                    <label className="mb-2 flex items-center text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                                        <Phone className="mr-1.5 h-3.5 w-3.5" /> Nomor Telepon
+                                    </label>
+                                    <p className="text-sm font-bold text-gray-900">
+                                        {profile.phoneNumber ? profile.phoneNumber : <span className="italic text-gray-400">Belum diatur</span>}
+                                    </p>
+                                </>
                             )}
                         </div>
 
@@ -494,173 +477,125 @@ export default function UserProfilePage() {
                                 <p className="text-[11px] font-medium text-gray-500 mt-0.5">Kami akan mengirimkan kode OTP ke email Anda</p>
                             </div>
                         </div>
-                        <button
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={KeyRound}
                             onClick={handleRequestOtp}
-                            disabled={isProcessingAuth}
-                            className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors shadow-sm disabled:opacity-50 flex items-center"
+                            loading={isProcessingAuth}
                         >
-                            {isProcessingAuth ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <KeyRound className="w-4 h-4 mr-2" />}
-                            {isProcessingAuth ? 'Memproses...' : 'Ubah Password'}
-                        </button>
+                            Ubah Password
+                        </Button>
                     </div>
 
                 </div>
             </div>
 
-            {/* ========================================== */}
-            {/* MODAL CROP GAMBAR                          */}
-            {/* ========================================== */}
-            {isCropModalOpen && !!imgSrc && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-indigo-50 text-[#5A2EFF] rounded-full flex items-center justify-center">
-                                    <Crop className="w-4 h-4" />
-                                </div>
-                                <h2 className="text-sm font-extrabold text-gray-900">Sesuaikan Foto</h2>
-                            </div>
-                            <button 
-                                onClick={() => { setIsCropModalOpen(false); if(fileInputRef.current) fileInputRef.current.value = ''; }} 
-                                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-xl transition-all"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        
-                        <div className="p-6 bg-[#F8F9FC] flex flex-col items-center justify-center">
-                            <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mb-4 text-center">
-                                Geser kotak untuk menyesuaikan porsi gambar
-                            </p>
-                            
-                            <div className="max-h-[50vh] overflow-auto w-full flex justify-center bg-gray-900/5 rounded-xl border border-gray-200">
-                                <ReactCrop
-                                    crop={crop}
-                                    onChange={(_, percentCrop) => setCrop(percentCrop)}
-                                    onComplete={(c) => setCompletedCrop(c)}
-                                    aspect={1}
-                                    circularCrop 
-                                >
-                                    <img 
-                                        ref={imgRef}
-                                        src={imgSrc} 
-                                        alt="Crop me" 
-                                        onLoad={onImageLoad} 
-                                        className="max-h-[50vh] object-contain"
-                                    />
-                                </ReactCrop>
-                            </div>
-                        </div>
-
-                        <div className="px-6 py-5 border-t border-gray-100 bg-white flex space-x-3">
-                            <button 
-                                type="button" 
-                                onClick={() => { setIsCropModalOpen(false); if(fileInputRef.current) fileInputRef.current.value = ''; }} 
-                                disabled={isUploadingPhoto} 
-                                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                                Batal
-                            </button>
-                            <button 
-                                type="button" 
-                                onClick={handleUploadCroppedImage} 
-                                disabled={!completedCrop?.width || !completedCrop?.height || isUploadingPhoto} 
-                                className="flex-1 px-4 py-3 rounded-xl bg-[#5A2EFF] text-white font-bold hover:bg-indigo-700 shadow-sm transition-colors flex items-center justify-center"
-                            >
-                                {isUploadingPhoto ? 'Mengunggah...' : 'Simpan & Unggah'}
-                            </button>
-                        </div>
-                    </div>
+            <Modal
+                open={isCropModalOpen && !!imgSrc}
+                onClose={() => { setIsCropModalOpen(false); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                title="Sesuaikan Foto"
+                subtitle="Geser kotak untuk menyesuaikan porsi gambar"
+                icon={Crop}
+                size="md"
+                footer={
+                    <>
+                        <Button
+                            variant="secondary"
+                            className="flex-1"
+                            onClick={() => { setIsCropModalOpen(false); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                            disabled={isUploadingPhoto}
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            variant="primary"
+                            className="flex-1"
+                            onClick={handleUploadCroppedImage}
+                            loading={isUploadingPhoto}
+                            disabled={!completedCrop?.width || !completedCrop?.height}
+                        >
+                            Simpan & Unggah
+                        </Button>
+                    </>
+                }
+            >
+                <div className="flex justify-center overflow-auto rounded-xl border border-gray-200 bg-gray-900/5">
+                    <ReactCrop
+                        crop={crop}
+                        onChange={(_, percentCrop) => setCrop(percentCrop)}
+                        onComplete={(c) => setCompletedCrop(c)}
+                        aspect={1}
+                        circularCrop
+                    >
+                        <img
+                            ref={imgRef}
+                            src={imgSrc}
+                            alt="Crop preview"
+                            onLoad={onImageLoad}
+                            className="max-h-[50vh] object-contain"
+                        />
+                    </ReactCrop>
                 </div>
-            )}
+            </Modal>
 
-            {/* ========================================== */}
-            {/* MODAL UBAH PASSWORD (OTP)                  */}
-            {/* ========================================== */}
-            {isPasswordModalOpen && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col border border-gray-100">
-                        
-                        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-rose-50/30">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center border border-rose-200">
-                                    <Lock className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h2 className="text-sm font-extrabold text-gray-900">Ubah Password</h2>
-                                    <p className="text-[10px] font-medium text-gray-500">Konfirmasi via OTP Email</p>
-                                </div>
-                            </div>
-                            <button 
-                                onClick={() => { setIsPasswordModalOpen(false); setAuthMessage({type: '', text: ''}); }} 
-                                className="p-2 text-gray-400 hover:bg-gray-100 rounded-xl transition-all"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
+            <Modal
+                open={isPasswordModalOpen}
+                onClose={() => { setIsPasswordModalOpen(false); setAuthMessage({ type: '', text: '' }); }}
+                title="Ubah Password"
+                subtitle="Konfirmasi via OTP Email"
+                icon={Lock}
+                size="sm"
+                footer={
+                    <Button
+                        type="submit"
+                        form="password-form"
+                        variant="accent"
+                        className="w-full"
+                        loading={isProcessingAuth}
+                        disabled={!otp || !newPassword}
+                    >
+                        Simpan Password Baru
+                    </Button>
+                }
+            >
+                <form id="password-form" onSubmit={handleResetPassword} className="admin-form space-y-4">
+                    {authMessage.text && (
+                        <div className={`flex items-start rounded-xl p-3 text-xs font-bold ${authMessage.type === 'error' ? 'border border-red-100 bg-red-50 text-red-600' : 'border border-green-100 bg-green-50 text-green-700'}`}>
+                            {authMessage.type === 'error' ? <Info className="mr-2 mt-0.5 h-4 w-4 flex-shrink-0" /> : <CheckCircle2 className="mr-2 mt-0.5 h-4 w-4 flex-shrink-0" />}
+                            <span>{authMessage.text}</span>
                         </div>
+                    )}
 
-                        <form onSubmit={handleResetPassword} className="p-6 space-y-5 bg-white">
-                            
-                            {/* Notifikasi Dalam Modal */}
-                            {authMessage.text && (
-                                <div className={`p-3 rounded-xl text-xs font-bold flex items-start ${authMessage.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`}>
-                                    {authMessage.type === 'error' ? <Info className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />}
-                                    <span>{authMessage.text}</span>
-                                </div>
-                            )}
+                    <FormField
+                        label="Kode OTP"
+                        required
+                        hint={<>Cek kotak masuk atau folder spam di email <strong>{profile?.email}</strong>.</>}
+                    >
+                        <Input
+                            type="text"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            inputClassName="text-center text-lg font-black tracking-[0.5em]"
+                            placeholder="123456"
+                            maxLength={6}
+                            required
+                            autoComplete="off"
+                        />
+                    </FormField>
 
-                            <div>
-                                <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Kode OTP</label>
-                                <input
-                                    type="text"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-center tracking-[0.5em] text-lg font-black text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all"
-                                    placeholder="123456"
-                                    maxLength={6}
-                                    required
-                                    autoComplete="off"
-                                />
-                                <p className="text-[10px] text-gray-400 mt-2 text-center">Cek kotak masuk atau folder spam di email <strong>{profile?.email}</strong>.</p>
-                            </div>
-
-                            <div>
-                                <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Password Baru</label>
-                                <div className="relative">
-                                    <input
-                                        type={showNewPassword ? "text" : "password"}
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full pl-4 pr-12 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all"
-                                        placeholder="Minimal 8 Karakter"
-                                        required
-                                        autoComplete="new-password"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowNewPassword(!showNewPassword)}
-                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-[#5A2EFF] transition-colors"
-                                    >
-                                        {showNewPassword ? <Eye className="w-4 h-4" /> : <Info className="w-4 h-4" />} {/* Gunakan ikon mata coret jika ada, sementara pakai Info/Eye */}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="pt-2">
-                                <button 
-                                    type="submit" 
-                                    disabled={isProcessingAuth || !otp || !newPassword} 
-                                    className="w-full py-3 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow-sm transition-colors flex items-center justify-center disabled:opacity-50"
-                                >
-                                    {isProcessingAuth ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                    {isProcessingAuth ? 'Menyimpan...' : 'Simpan Password Baru'}
-                                </button>
-                            </div>
-                        </form>
-
-                    </div>
-                </div>
-            )}
+                    <FormField label="Password Baru" required hint="Minimal 8 karakter">
+                        <Input
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Minimal 8 Karakter"
+                            required
+                            autoComplete="new-password"
+                        />
+                    </FormField>
+                </form>
+            </Modal>
 
         </div>
     );

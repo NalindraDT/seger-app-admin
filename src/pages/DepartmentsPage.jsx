@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-    Building2, Search, Plus, Edit, Trash2, X, 
-    CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, Loader2
+    Building2, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
+import {
+    FormField, Input, Select, Textarea, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal
+} from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
 export default function DepartmentsPage() {
@@ -13,7 +15,6 @@ export default function DepartmentsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [toastMessage, setToastMessage] = useState('');
 
-    // STATE MODAL FORM (TAMBAH/EDIT)
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editId, setEditId] = useState(null);
@@ -21,7 +22,6 @@ export default function DepartmentsPage() {
         name: '', description: '', is_active: true
     });
 
-    // STATE MODAL HAPUS
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [departmentToDelete, setDepartmentToDelete] = useState(null);
 
@@ -66,22 +66,21 @@ export default function DepartmentsPage() {
         setIsFormModalOpen(true);
     };
 
-    // HANDLER SIMPAN (TAMBAH / EDIT)
     const handleFormSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const url = editId 
-                ? `${getBaseUrl()}/admin/departments/${editId}` 
+            const url = editId
+                ? `${getBaseUrl()}/admin/departments/${editId}`
                 : `${getBaseUrl()}/admin/departments`;
-            const method = editId ? 'PUT' : 'POST'; // Sesuaikan jika backend pakai PATCH
+            const method = editId ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
                 method: method,
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(formData)
             });
@@ -101,7 +100,6 @@ export default function DepartmentsPage() {
         }
     };
 
-    // HANDLER HAPUS
     const executeDelete = async () => {
         if (!departmentToDelete) return;
         setIsSubmitting(true);
@@ -134,49 +132,26 @@ export default function DepartmentsPage() {
 
     return (
         <div className="space-y-6 relative">
-            {/* TOAST */}
-            {toastMessage && (
-                <div className="fixed top-8 right-8 z-[100] animate-in slide-in-from-right-8 fade-in duration-300">
-                    <div className="bg-white border border-green-100 shadow-xl rounded-xl p-4 flex items-center space-x-3 pr-6">
-                        <div className="bg-green-100 p-1.5 rounded-full"><CheckCircle2 className="w-5 h-5 text-[#10B981]" /></div>
-                        <div><p className="text-sm font-extrabold text-gray-900">Sistem</p><p className="text-xs font-medium text-gray-500">{toastMessage}</p></div>
-                    </div>
-                </div>
-            )}
+            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
 
-            {/* HEADER & TOOLBAR */}
-            <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight flex items-center">
-                    <Building2 className="w-7 h-7 mr-3 text-[#5A2EFF]" /> Manajemen Departemen
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">Kelola data dan status departemen perusahaan</p>
+            <PageHeader
+                title="Manajemen Departemen"
+                subtitle="Kelola data dan status departemen perusahaan"
+            />
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <SearchBar
+                    label="Cari Departemen"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Cari nama departemen..."
+                    className="w-full md:max-w-md"
+                />
+                <Button icon={Plus} onClick={openAddModal}>
+                    Tambah Departemen
+                </Button>
             </div>
 
-            {/* TOOLBAR (PENCARIAN & TOMBOL) */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-6">
-                {/* PENCARIAN */}
-                <div className="relative w-full md:max-w-md">
-                    <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                        type="text"
-                        placeholder="Cari nama departemen..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]"
-                    />
-                </div>
-
-                {/* TOMBOL TAMBAH */}
-                <button 
-                    onClick={openAddModal} 
-                    className="flex items-center px-4 py-2.5 bg-[#5A2EFF] text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-sm transition-colors"
-                >
-                    <Plus className="w-4 h-4 mr-2" /> Tambah Departemen
-                </button>
-            </div>
-
-
-            {/* TABEL DEPARTEMEN */}
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -191,7 +166,7 @@ export default function DepartmentsPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
-                                <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#5A2EFF]"/>Memuat data...</td></tr>
+                                <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#5A2EFF]" />Memuat data...</td></tr>
                             ) : filteredDepartments.length === 0 ? (
                                 <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium">Data departemen tidak ditemukan.</td></tr>
                             ) : filteredDepartments.map((dept, index) => (
@@ -215,7 +190,6 @@ export default function DepartmentsPage() {
                         </tbody>
                     </table>
                 </div>
-                {/* PAGINATION */}
                 <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
                     <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages}</p>
                     <div className="flex space-x-1">
@@ -226,61 +200,62 @@ export default function DepartmentsPage() {
                 </div>
             </div>
 
-            {/* MODAL FORM (TAMBAH / EDIT) */}
-            {isFormModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                            <h2 className="text-lg font-bold text-gray-900">{editId ? 'Edit Departemen' : 'Tambah Departemen'}</h2>
-                            <button onClick={() => setIsFormModalOpen(false)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-                        </div>
-                        <form onSubmit={handleFormSubmit}>
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Nama Departemen</label>
-                                    <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" placeholder="Misal: Plant Operations" />
-                                </div>
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Deskripsi</label>
-                                    <textarea rows="3" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" placeholder="Penjelasan singkat..."></textarea>
-                                </div>
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Status</label>
-                                    <select value={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
-                                        <option value="true">Aktif</option>
-                                        <option value="false">Nonaktif</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="px-6 py-5 border-t border-gray-100 bg-white flex space-x-3">
-                                <button type="button" onClick={() => setIsFormModalOpen(false)} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition-colors">Batal</button>
-                                <button type="submit" disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl bg-[#5A2EFF] text-white font-bold hover:bg-indigo-700 shadow-sm transition-colors">
-                                    {isSubmitting ? 'Menyimpan...' : 'Simpan Departemen'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <Modal
+                open={isFormModalOpen}
+                onClose={() => setIsFormModalOpen(false)}
+                title={editId ? 'Edit Departemen' : 'Tambah Departemen'}
+                icon={Building2}
+                size="md"
+                footer={
+                    <>
+                        <Button variant="secondary" className="flex-1" onClick={() => setIsFormModalOpen(false)} disabled={isSubmitting}>
+                            Batal
+                        </Button>
+                        <Button type="submit" form="department-form" variant="primary" className="flex-1" loading={isSubmitting}>
+                            Simpan Departemen
+                        </Button>
+                    </>
+                }
+            >
+                <form id="department-form" onSubmit={handleFormSubmit} className="admin-form space-y-4">
+                    <FormField label="Nama Departemen" required>
+                        <Input
+                            type="text"
+                            required
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="Misal: Plant Operations"
+                        />
+                    </FormField>
+                    <FormField label="Deskripsi">
+                        <Textarea
+                            rows={3}
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            placeholder="Penjelasan singkat..."
+                        />
+                    </FormField>
+                    <FormField label="Status">
+                        <Select
+                            value={formData.is_active}
+                            onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
+                        >
+                            <option value="true">Aktif</option>
+                            <option value="false">Nonaktif</option>
+                        </Select>
+                    </FormField>
+                </form>
+            </Modal>
 
-            {/* MODAL HAPUS */}
-            {isDeleteModalOpen && departmentToDelete && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5">
-                            <AlertTriangle className="w-8 h-8" />
-                        </div>
-                        <h3 className="text-xl font-extrabold text-gray-900 mb-2">Hapus Departemen?</h3>
-                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                            Anda akan menghapus departemen <strong className="text-gray-700">"{departmentToDelete.name}"</strong> secara permanen. Pastikan tidak ada karyawan aktif di departemen ini.
-                        </p>
-                        <div className="flex space-x-3">
-                            <button onClick={() => { setIsDeleteModalOpen(false); setDepartmentToDelete(null); }} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50">Batal</button>
-                            <button onClick={executeDelete} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-sm">{isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                open={isDeleteModalOpen && !!departmentToDelete}
+                onClose={() => { setIsDeleteModalOpen(false); setDepartmentToDelete(null); }}
+                onConfirm={executeDelete}
+                title="Hapus Departemen?"
+                description={`Anda akan menghapus departemen "${departmentToDelete?.name}" secara permanen. Pastikan tidak ada karyawan aktif di departemen ini.`}
+                confirmLabel="Ya, Hapus"
+                loading={isSubmitting}
+            />
         </div>
     );
 }

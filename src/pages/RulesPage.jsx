@@ -1,18 +1,52 @@
 import { useState, useEffect } from 'react';
 import {
-    Search, Plus, Edit, Trash2,
-    X, MapPin, ChevronDown, CheckCircle2, AlertTriangle
+    Plus, Edit, Trash2, MapPin, Scale
 } from 'lucide-react';
+import {
+    FormField, Input, Select, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal
+} from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
+const THRESHOLD_FIELD_LABELS = {
+    distance_km: 'Jarak (km)',
+    duration_minutes: 'Durasi (menit)',
+    duration_seconds: 'Detik',
+    calories: 'Kalori (kcal)',
+    steps: 'Langkah',
+    elevation_m: 'Elevasi (meter)',
+};
+
+const getThresholdFieldsForActivity = (activity) => {
+    const fields = activity?.input_fields ?? [];
+    const numericFields = fields.filter((field) => field.type === 'number');
+    if (numericFields.length > 0) {
+        return numericFields.map((field) => ({
+            key: field.key,
+            label: THRESHOLD_FIELD_LABELS[field.key] ?? field.label ?? field.key,
+            unit: field.unit ?? '',
+        }));
+    }
+    return [{ key: 'distance_km', label: THRESHOLD_FIELD_LABELS.distance_km, unit: 'km' }];
+};
+
+const defaultThresholdFieldForActivity = (activity) => {
+    const fields = getThresholdFieldsForActivity(activity);
+    const preferred = ['distance_km', 'duration_minutes', 'calories', 'steps'];
+    for (const key of preferred) {
+        if (fields.some((field) => field.key === key)) return key;
+    }
+    return fields[0]?.key ?? 'distance_km';
+};
+
+const formatThresholdLabel = (fieldKey) => THRESHOLD_FIELD_LABELS[fieldKey] ?? fieldKey;
+
 export default function RulesPage() {
-    const [activeTab, setActiveTab] = useState('exp'); // 'exp' atau 'point'
+    const [activeTab, setActiveTab] = useState('exp');
     const [rules, setRules] = useState([]);
     const [activityTypes, setActivityTypes] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // STATE UNTUK MODAL TAMBAH/EDIT
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('add');
     const [selectedRuleId, setSelectedRuleId] = useState(null);
@@ -20,16 +54,23 @@ export default function RulesPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
 
-    // STATE UNTUK MODAL HAPUS
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [ruleToDelete, setRuleToDelete] = useState(null);
 
     const [formData, setFormData] = useState({
         activity_type_id: '',
-        min_distance_km: '',
+        threshold_field: 'distance_km',
+        min_value: '',
         reward_amount: '',
         is_active: true
     });
+
+    const selectedActivityForForm = activityTypes.find(
+        (act) => String(act.id) === String(formData.activity_type_id)
+    );
+    const thresholdFieldOptions = getThresholdFieldsForActivity(selectedActivityForForm);
+    const selectedThresholdMeta = thresholdFieldOptions.find((field) => field.key === formData.threshold_field)
+        ?? thresholdFieldOptions[0];
 
     const fetchActivityTypes = async () => {
         try {
@@ -85,17 +126,17 @@ export default function RulesPage() {
         return activity ? activity.name : `ID: ${id}`;
     };
 
-    // LOGIKA BARU: Menyaring aktifitas yang BELUM punya rule di tab ini
     const availableActivityTypes = activityTypes.filter(act =>
         !rules.some(rule => rule.activity_type_id === act.id)
     );
 
     const openAddModal = () => {
         setModalMode('add');
+        const defaultActivity = availableActivityTypes[0] ?? null;
         setFormData({
-            // Secara otomatis memilih id dari daftar aktifitas yang tersisa (jika ada)
-            activity_type_id: availableActivityTypes.length > 0 ? availableActivityTypes[0].id : '',
-            min_distance_km: '',
+            activity_type_id: defaultActivity ? defaultActivity.id : '',
+            threshold_field: defaultThresholdFieldForActivity(defaultActivity),
+            min_value: '',
             reward_amount: '',
             is_active: true
         });
@@ -106,13 +147,24 @@ export default function RulesPage() {
         setModalMode('edit');
         setSelectedRuleId(rule.id);
         setSelectedActivityName(getActivityName(rule.activity_type_id));
+        const activity = activityTypes.find((act) => act.id === rule.activity_type_id);
         setFormData({
             activity_type_id: rule.activity_type_id,
-            min_distance_km: rule.min_distance_km,
+            threshold_field: rule.threshold_field ?? defaultThresholdFieldForActivity(activity),
+            min_value: rule.min_value ?? rule.min_distance_km,
             reward_amount: activeTab === 'exp' ? rule.xp_awarded : rule.points_awarded,
             is_active: rule.is_active
         });
         setIsModalOpen(true);
+    };
+
+    const handleActivityTypeChange = (activityTypeId) => {
+        const activity = activityTypes.find((act) => String(act.id) === String(activityTypeId));
+        setFormData((prev) => ({
+            ...prev,
+            activity_type_id: activityTypeId,
+            threshold_field: defaultThresholdFieldForActivity(activity),
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -130,14 +182,16 @@ export default function RulesPage() {
             if (modalMode === 'add') {
                 payload = {
                     activity_type_id: Number(formData.activity_type_id),
-                    min_distance_km: Number(formData.min_distance_km),
+                    threshold_field: formData.threshold_field,
+                    min_value: Number(formData.min_value),
                     is_active: formData.is_active
                 };
             } else {
                 url = `${url}/${selectedRuleId}`;
                 method = 'PUT';
                 payload = {
-                    min_distance_km: Number(formData.min_distance_km),
+                    threshold_field: formData.threshold_field,
+                    min_value: Number(formData.min_value),
                     is_active: formData.is_active
                 };
             }
@@ -203,30 +257,20 @@ export default function RulesPage() {
         return name.includes(searchTerm.toLowerCase());
     });
 
+    const modalTitle = modalMode === 'add'
+        ? `Tambah Rules ${activeTab === 'exp' ? 'Exp' : 'Poin'}`
+        : `Edit Rules ${activeTab === 'exp' ? 'Exp' : 'Poin'} (${selectedActivityName})`;
+
     return (
         <div className="space-y-6 relative">
+            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
 
-            {/* TOAST NOTIFICATION */}
-            {toastMessage && (
-                <div className="fixed top-8 right-8 z-[100] animate-in slide-in-from-right-8 fade-in duration-300">
-                    <div className="bg-white border border-green-100 shadow-xl rounded-xl p-4 flex items-center space-x-3 pr-6">
-                        <div className="bg-green-100 p-1.5 rounded-full"><CheckCircle2 className="w-5 h-5 text-[#10B981]" /></div>
-                        <div>
-                            <p className="text-sm font-extrabold text-gray-900">Berhasil!</p>
-                            <p className="text-xs font-medium text-gray-500">{toastMessage}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <PageHeader
+                title="Aturan EXP dan Poin"
+                subtitle="Halaman pengaturan aturan pendapatan exp dan point berdasarkan suatu aktifitas"
+            />
 
-            {/* HEADER TITLE */}
-            <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Aturan EXP dan Poin</h1>
-                <p className="text-sm text-gray-500 mt-1">Halaman pengaturan aturan pendapatan exp dan point berdasarkan suatu aktifitas</p>
-            </div>
-
-            {/* TABS MENU */}
-            <div className="border-b border-gray-200 mt-6">
+            <div className="border-b border-gray-200">
                 <nav className="flex space-x-8">
                     <button onClick={() => { setActiveTab('exp'); setSearchTerm(''); }} className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors ${activeTab === 'exp' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
                         Aturan EXP
@@ -237,27 +281,28 @@ export default function RulesPage() {
                 </nav>
             </div>
 
-            {/* TOOLBAR */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
-                <div className="relative w-full sm:max-w-xs">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search className="h-4 w-4 text-gray-400" /></div>
-                    <input type="text" placeholder="Cari aktifitas" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-[#F8F9FC] border border-transparent rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] focus:bg-white transition-all" />
-                </div>
-
-                <button onClick={openAddModal} className="flex items-center justify-center px-4 py-2.5 bg-[#5A2EFF] text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">
-                    <Plus className="w-4 h-4 mr-2" /> {activeTab === 'exp' ? 'Tambah Aturan EXP' : 'Tambah Aturan Poin'}
-                </button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <SearchBar
+                    label="Cari Aturan"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Cari aktifitas"
+                    className="w-full sm:max-w-xs"
+                />
+                <Button icon={Plus} onClick={openAddModal}>
+                    {activeTab === 'exp' ? 'Tambah Aturan EXP' : 'Tambah Aturan Poin'}
+                </Button>
             </div>
 
-            {/* TABLE DATA */}
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm mt-4">
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F8F9FC] border-b border-gray-100">
                             <tr>
                                 <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-16">No</th>
                                 <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center">Nama Aktifitas</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center">Minimal jarak (KM)</th>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center">Parameter Minimum</th>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center">Nilai Minimum</th>
                                 <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center">{activeTab === 'exp' ? 'Hadiah EXP' : 'Hadiah poin'}</th>
                                 <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-32">Status</th>
                                 <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-32">Actions</th>
@@ -265,15 +310,16 @@ export default function RulesPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
-                                <tr><td colSpan="6" className="text-center py-10 text-gray-500 font-medium">Memuat data aturan...</td></tr>
+                                <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data aturan...</td></tr>
                             ) : filteredRules.length === 0 ? (
-                                <tr><td colSpan="6" className="text-center py-10 text-gray-500 font-medium">Tidak ada data aturan.</td></tr>
+                                <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Tidak ada data aturan.</td></tr>
                             ) : (
                                 filteredRules.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-bold text-gray-800 text-center">{index + 1}</td>
                                         <td className="px-6 py-4 font-extrabold text-gray-900 text-center">{getActivityName(item.activity_type_id)}</td>
-                                        <td className="px-6 py-4 font-bold text-gray-700 text-center">{item.min_distance_km}</td>
+                                        <td className="px-6 py-4 font-bold text-gray-700 text-center">{formatThresholdLabel(item.threshold_field ?? 'distance_km')}</td>
+                                        <td className="px-6 py-4 font-bold text-gray-700 text-center">{item.min_value ?? item.min_distance_km}</td>
                                         <td className="px-6 py-4 font-bold text-gray-700 text-center">{activeTab === 'exp' ? item.xp_awarded : item.points_awarded}</td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-wider ${item.is_active ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
@@ -292,117 +338,112 @@ export default function RulesPage() {
                 </div>
             </div>
 
-            {/* MODAL TAMBAH & EDIT RULES */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-[440px] flex flex-col overflow-hidden">
-
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                            <h2 className="text-lg font-bold text-gray-900">
-                                {modalMode === 'add'
-                                    ? `Tambah Rules ${activeTab === 'exp' ? 'Exp' : 'Poin'}`
-                                    : `Edit Rules ${activeTab === 'exp' ? 'Exp' : 'Poin'} (${selectedActivityName})`}
-                            </h2>
-                            <button onClick={closeModal} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5" /></button>
-                        </div>
-
-                        <form onSubmit={handleSubmit}>
-                            <div className="p-6 space-y-4">
-
-                                {/* Kode Aktifitas - HANYA MUNCUL SAAT ADD & DIFILTER */}
-                                {modalMode === 'add' && (
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5">Kode Aktifitas</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                                <div className="w-5 h-5 bg-gray-200 text-gray-500 rounded flex items-center justify-center text-[10px] font-bold border border-gray-300">Ad</div>
-                                            </div>
-                                            <select
-                                                required
-                                                value={formData.activity_type_id}
-                                                onChange={(e) => setFormData({ ...formData, activity_type_id: e.target.value })}
-                                                className="w-full pl-11 pr-10 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium text-gray-800 appearance-none focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all"
-                                            >
-                                                {/* Jika semua aktifitas sudah punya rules, beri peringatan di dropdown */}
-                                                {availableActivityTypes.length === 0 ? (
-                                                    <option value="" disabled>Semua aktifitas sudah memiliki aturan</option>
-                                                ) : (
-                                                    <option value="" disabled>Pilih Aktifitas</option>
-                                                )}
-
-                                                {/* HANYA MAP DATA YANG TERSEDIA */}
-                                                {availableActivityTypes.map(act => (
-                                                    <option key={act.id} value={act.id}>{act.name} ({act.code})</option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><ChevronDown className="w-4 h-4 text-gray-500" /></div>
-                                        </div>
-                                    </div>
+            <Modal
+                open={isModalOpen}
+                onClose={closeModal}
+                title={modalTitle}
+                icon={Scale}
+                size="md"
+                footer={
+                    <>
+                        <Button variant="secondary" className="flex-1" onClick={closeModal} disabled={isSubmitting}>
+                            Batal
+                        </Button>
+                        <Button
+                            type="submit"
+                            form="rules-form"
+                            variant="success"
+                            className="flex-1"
+                            loading={isSubmitting}
+                            disabled={modalMode === 'add' && availableActivityTypes.length === 0}
+                        >
+                            Simpan
+                        </Button>
+                    </>
+                }
+            >
+                <form id="rules-form" onSubmit={handleSubmit} className="admin-form space-y-4">
+                    {modalMode === 'add' && (
+                        <FormField label="Kode Aktifitas" required>
+                            <Select
+                                required
+                                value={formData.activity_type_id}
+                                onChange={(e) => handleActivityTypeChange(e.target.value)}
+                            >
+                                {availableActivityTypes.length === 0 ? (
+                                    <option value="" disabled>Semua aktifitas sudah memiliki aturan</option>
+                                ) : (
+                                    <option value="" disabled>Pilih Aktifitas</option>
                                 )}
+                                {availableActivityTypes.map(act => (
+                                    <option key={act.id} value={act.id}>{act.name} ({act.code})</option>
+                                ))}
+                            </Select>
+                        </FormField>
+                    )}
 
-                                {/* Minimal Jarak */}
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5">Minimal jarak (KM)</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><MapPin className="w-4 h-4 text-gray-400" /></div>
-                                        <input type="number" step="0.1" min="0" required placeholder="0" value={formData.min_distance_km} onChange={(e) => setFormData({ ...formData, min_distance_km: e.target.value })} className="w-full pl-10 pr-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all" />
-                                    </div>
-                                </div>
+                    <FormField label="Parameter Minimum" required>
+                        <Select
+                            required
+                            value={formData.threshold_field}
+                            onChange={(e) => setFormData({ ...formData, threshold_field: e.target.value })}
+                        >
+                            {thresholdFieldOptions.map((field) => (
+                                <option key={field.key} value={field.key}>{field.label}</option>
+                            ))}
+                        </Select>
+                    </FormField>
 
-                                {/* Hadiah EXP / POIN Dinamis */}
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5">{activeTab === 'exp' ? 'Hadiah EXP' : 'Hadiah Poin'}</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                            {activeTab === 'exp' ? <span className="text-[10px] font-extrabold text-gray-500">XP</span> : <span className="text-sm">🪙</span>}
-                                        </div>
-                                        <input type="number" min="0" required placeholder="0" value={formData.reward_amount} onChange={(e) => setFormData({ ...formData, reward_amount: e.target.value })} className="w-full pl-10 pr-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all" />
-                                    </div>
-                                </div>
+                    <FormField
+                        label={`Nilai Minimum${selectedThresholdMeta?.unit ? ` (${selectedThresholdMeta.unit})` : ''}`}
+                        required
+                        hint={activeTab === 'exp' ? `EXP dihitung per kelipatan nilai minimum (mis. ${formData.min_value || 'X'} ${selectedThresholdMeta?.unit || ''} = 1 unit hadiah).` : undefined}
+                    >
+                        <Input
+                            icon={MapPin}
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            required
+                            placeholder="0"
+                            value={formData.min_value}
+                            onChange={(e) => setFormData({ ...formData, min_value: e.target.value })}
+                        />
+                    </FormField>
 
-                                {/* Status */}
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5">Status</label>
-                                    <div className="relative">
-                                        <select value={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })} className="w-full pl-4 pr-10 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium text-gray-800 appearance-none focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all">
-                                            <option value="true">Active</option>
-                                            <option value="false">Inactive</option>
-                                        </select>
-                                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><ChevronDown className="w-4 h-4 text-gray-500" /></div>
-                                    </div>
-                                </div>
+                    <FormField label={activeTab === 'exp' ? 'Hadiah EXP' : 'Hadiah Poin'} required>
+                        <Input
+                            suffix={activeTab === 'exp' ? 'XP' : undefined}
+                            type="number"
+                            min="0"
+                            required
+                            placeholder="0"
+                            value={formData.reward_amount}
+                            onChange={(e) => setFormData({ ...formData, reward_amount: e.target.value })}
+                        />
+                    </FormField>
 
-                            </div>
+                    <FormField label="Status">
+                        <Select
+                            value={formData.is_active}
+                            onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
+                        >
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </Select>
+                    </FormField>
+                </form>
+            </Modal>
 
-                            <div className="px-6 py-5 border-t border-gray-100 bg-white flex space-x-3">
-                                <button type="button" onClick={closeModal} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors disabled:opacity-50">Batal</button>
-                                {/* Tombol Simpan disable jika tidak ada aktifitas yang bisa dipilih di mode Tambah */}
-                                <button type="submit" disabled={isSubmitting || (modalMode === 'add' && availableActivityTypes.length === 0)} className="flex-1 px-4 py-3 rounded-xl bg-[#10B981] text-white font-bold hover:bg-green-600 shadow-sm transition-colors disabled:opacity-50">
-                                    {isSubmitting ? 'Memproses...' : 'Simpan'}
-                                </button>
-                            </div>
-                        </form>
-
-                    </div>
-                </div>
-            )}
-
-            {/* MODAL HAPUS */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5"><AlertTriangle className="w-8 h-8" /></div>
-                        <h3 className="text-xl font-extrabold text-gray-900 mb-2">Hapus Aturan?</h3>
-                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">Anda akan menghapus aturan ini. Pengguna tidak akan mendapatkan hadiah yang sesuai untuk aktifitas ini lagi.</p>
-                        <div className="flex space-x-3">
-                            <button onClick={() => setIsDeleteModalOpen(false)} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 disabled:opacity-50">Batal</button>
-                            <button onClick={executeDelete} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-sm transition-colors disabled:opacity-50">
-                                {isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                open={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={executeDelete}
+                title="Hapus Aturan?"
+                description="Anda akan menghapus aturan ini. Pengguna tidak akan mendapatkan hadiah yang sesuai untuk aktifitas ini lagi."
+                confirmLabel="Ya, Hapus"
+                loading={isSubmitting}
+            />
         </div>
     );
 }

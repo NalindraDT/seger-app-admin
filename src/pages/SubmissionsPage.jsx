@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
     Activity, Clock, Calendar, Link as LinkIcon,
-    ChevronLeft, ChevronRight, X, Check, User, Ruler,
+    ChevronLeft, ChevronRight, Check, User, Ruler,
     ExternalLink, ZoomIn, FileText, AlertTriangle, CheckCircle2,
-    ClipboardList, Image as ImageIcon // <--- INI YANG MEMBUATNYA CRASH, SUDAH DITAMBAHKAN
+    ClipboardList, Image as ImageIcon
 } from 'lucide-react';
+import {
+    PageHeader, Button, Modal, FormField, Textarea, Toast
+} from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
 export default function SubmissionsPage() {
@@ -21,9 +24,9 @@ export default function SubmissionsPage() {
     const [isVerifying, setIsVerifying] = useState(false);
     const [isZoomed, setIsZoomed] = useState(false);
     const [reviewNote, setReviewNote] = useState('');
+    const [toastMessage, setToastMessage] = useState('');
 
-    // STATE BARU UNTUK 2-STEP VERIFICATION (Konfirmasi)
-    const [confirmAction, setConfirmAction] = useState(null); // 'approved' | 'rejected' | null
+    const [confirmAction, setConfirmAction] = useState(null);
 
     const fetchSubmissions = async () => {
         setIsLoading(true);
@@ -75,7 +78,8 @@ export default function SubmissionsPage() {
         if (!selectedSubmission || !confirmAction) return;
 
         if (confirmAction === 'rejected' && !reviewNote.trim()) {
-            alert('Catatan penolakan wajib diisi sebelum menolak aktivitas.');
+            setToastMessage('Catatan penolakan wajib diisi sebelum menolak aktivitas.');
+            setConfirmAction(null);
             return;
         }
 
@@ -101,10 +105,10 @@ export default function SubmissionsPage() {
                 fetchSubmissions();
                 fetchDashboardSummary();
             } else {
-                alert(json.message || "Gagal melakukan verifikasi");
+                setToastMessage(json.message || 'Gagal melakukan verifikasi');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            setToastMessage('Terjadi kesalahan jaringan.');
         } finally {
             setIsVerifying(false);
             setConfirmAction(null);
@@ -154,11 +158,12 @@ export default function SubmissionsPage() {
 
     return (
         <div className="space-y-6">
-            {/* HEADER & SUMMARY CARDS */}
-            <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Pengajuan Aktivitas</h1>
-                <p className="text-sm text-gray-500 mt-1">Review dan atur submissions user</p>
-            </div>
+            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+
+            <PageHeader
+                title="Pengajuan Aktivitas"
+                subtitle="Review dan atur submissions user"
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center">
@@ -249,12 +254,13 @@ export default function SubmissionsPage() {
                                         </td>
                                         <td className="px-6 py-4 text-gray-500 text-xs font-medium">{formatDate(item.submitted_at)}</td>
                                         <td className="px-6 py-4 text-center">
-                                            <button
+                                            <Button
+                                                size="sm"
+                                                variant="secondary"
                                                 onClick={() => setSelectedSubmission(item)}
-                                                className="px-4 py-1.5 bg-[#F3F4F6] text-[#5A2EFF] border border-transparent font-bold text-xs rounded-md hover:bg-indigo-50 transition-all"
                                             >
                                                 Detail
-                                            </button>
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))
@@ -290,250 +296,181 @@ export default function SubmissionsPage() {
                 </div>
             )}
 
-            {/* ========================================= */}
-            {/* 2. MODAL DETAIL UTAMA (z-index 50)          */}
-            {/* ========================================= */}
-            {selectedSubmission && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[900px] flex flex-col overflow-hidden border border-gray-100">
-
-                        {/* HEADER MODAL SERAGAM */}
-                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center border border-indigo-100">
-                                    <ClipboardList className="w-5 h-5 text-[#5A2EFF]" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-extrabold text-gray-900 leading-tight">Detail Submission</h2>
-                                    <p className="text-[11px] font-medium text-gray-500">Review activity pengguna sebelum approval</p>
-                                </div>
-                            </div>
-                            <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-xl transition-all">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 bg-white overflow-y-auto max-h-[70vh]">
-
-                            {/* KOLOM KIRI: Activity Information */}
-                            <div className="space-y-6">
-                                <div className="bg-[#F8F9FC] rounded-2xl p-5 border border-gray-100 shadow-sm">
-                                    <h3 className="font-bold text-gray-900 mb-4 flex items-center text-sm">
-                                        <Activity className="w-4 h-4 text-[#5A2EFF] mr-2" /> Activity Information
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="col-span-1">
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Nama Peserta</label>
-                                            <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
-                                                <User className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                <span className="text-sm font-semibold text-gray-800 truncate">{selectedSubmission.participant_name}</span>
-                                            </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Status</label>
-                                            <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
-                                                <Clock className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                <span className="text-sm font-bold uppercase text-gray-800">{selectedSubmission.status}</span>
-                                            </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Aktifitas</label>
-                                            <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
-                                                <Activity className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                <span className="text-sm font-semibold text-gray-800 truncate">{selectedSubmission.activity_type}</span>
-                                            </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Tanggal Aktivitas</label>
-                                            <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
-                                                <Calendar className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                <span className="text-sm font-semibold text-gray-800">{selectedSubmission.activity_date ? formatDate(selectedSubmission.activity_date) : '-'}</span>
-                                            </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Jarak (km)</label>
-                                            <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
-                                                <Ruler className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                <span className="text-sm font-semibold text-gray-800">{selectedSubmission.distance_km}</span>
-                                            </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Durasi</label>
-                                            <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
-                                                <Clock className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                <span className="text-sm font-semibold text-gray-800">
-                                                    {formatDuration(selectedSubmission.duration_minutes, selectedSubmission.duration_seconds)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {formatPace(selectedSubmission.pace_min_per_km) && (
-                                            <div className="col-span-1">
-                                                <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Pace</label>
-                                                <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
-                                                    <Activity className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                    <span className="text-sm font-semibold text-gray-800">{formatPace(selectedSubmission.pace_min_per_km)}</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div className="col-span-1">
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Waktu Submit</label>
-                                            <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
-                                                <Calendar className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                <span className="text-sm font-semibold text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
-                                                    {formatDate(selectedSubmission.submitted_at)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Sumber</label>
-                                            <div className="flex items-center bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 shadow-sm">
-                                                <LinkIcon className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
-                                                <a href={selectedSubmission.source_link} target="_blank" rel="noreferrer" className="text-sm font-semibold text-gray-800 truncate hover:text-[#5A2EFF] flex-1">
-                                                    {selectedSubmission.source_link}
-                                                </a>
-                                                <ExternalLink className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* SEKSI REVIEW NOTE */}
-                                {selectedSubmission.status.toUpperCase() === 'PENDING' ? (
-                                    <div className="bg-[#F8F9FC] rounded-2xl p-5 border border-gray-100 shadow-sm">
-                                        <label className="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wide">Catatan Verifikasi Admin (Opsional)</label>
-                                        <div className="relative">
-                                            <div className="absolute top-3.5 left-3.5 text-gray-400 pointer-events-none">
-                                                <FileText className="w-4 h-4" />
-                                            </div>
-                                            <textarea
-                                                rows="2"
-                                                placeholder="Ketik catatan di sini..."
-                                                value={reviewNote}
-                                                onChange={(e) => setReviewNote(e.target.value)}
-                                                className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-3.5 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] focus:border-transparent transition-all resize-none shadow-sm"
-                                            ></textarea>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="bg-[#F8F9FC] rounded-2xl p-5 border border-gray-100 shadow-sm">
-                                        <label className="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wide">Catatan Verifikasi Admin</label>
-                                        <div className="flex items-start bg-white border border-gray-200 rounded-xl px-3.5 py-3 shadow-sm">
-                                            <FileText className="w-4 h-4 text-gray-400 mr-2.5 mt-0.5 flex-shrink-0" />
-                                            <span className="text-sm font-medium text-gray-700 italic">
-                                                {selectedSubmission.review_note || "Tidak ada catatan."}
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* KOLOM KANAN: Bukti Foto */}
-                            <div className="bg-[#F8F9FC] rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col">
-                                <h3 className="font-bold text-gray-900 mb-4 flex items-center text-sm">
-                                    <ImageIcon className="w-4 h-4 text-[#5A2EFF] mr-2" /> Bukti Foto
-                                </h3>
-                                <div
-                                    className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden relative group cursor-zoom-in flex items-center justify-center shadow-inner"
-                                    onClick={() => setIsZoomed(true)}
-                                >
-                                    {selectedSubmission.proof_photo ? (
-                                        <>
-                                            <img src={selectedSubmission.proof_photo} alt="Bukti" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                                                <ZoomIn className="w-10 h-10 text-white opacity-0 group-hover:opacity-100 drop-shadow-lg scale-50 group-hover:scale-100 transition-all duration-300" />
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <p className="text-gray-400 text-sm font-medium">Tidak ada foto bukti</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Modal Footer (Aksi Tahap 1) */}
-                        <div className="px-8 py-5 border-t border-gray-100 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
-                            <p className="text-xs font-medium text-gray-500 max-w-sm leading-relaxed">
+            <Modal
+                open={!!selectedSubmission}
+                onClose={closeModal}
+                title="Detail Submission"
+                subtitle="Review activity pengguna sebelum approval"
+                icon={ClipboardList}
+                size="full"
+                className="max-w-[900px]"
+                footer={
+                    selectedSubmission?.status.toUpperCase() === 'PENDING' ? (
+                        <>
+                            <p className="hidden flex-1 text-xs font-medium leading-relaxed text-gray-500 md:block">
                                 Pastikan semua detil hasil submit cocok dengan bukti gambar sebelum mengambil keputusan
                             </p>
+                            <Button variant="danger" icon={AlertTriangle} onClick={() => setConfirmAction('rejected')}>
+                                Reject
+                            </Button>
+                            <Button variant="success" icon={Check} onClick={() => setConfirmAction('approved')}>
+                                Approve
+                            </Button>
+                        </>
+                    ) : (
+                        <Button variant="secondary" className="ml-auto" onClick={closeModal}>
+                            Tutup
+                        </Button>
+                    )
+                }
+            >
+                {selectedSubmission && (
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                        <div className="space-y-6">
+                            <div className="rounded-2xl border border-gray-100 bg-[#F8F9FC] p-5 shadow-sm">
+                                <h3 className="mb-4 flex items-center text-sm font-bold text-gray-900">
+                                    <Activity className="mr-2 h-4 w-4 text-[#5A2EFF]" /> Activity Information
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField label="Nama Peserta">
+                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
+                                            <User className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <span className="truncate text-sm font-semibold text-gray-800">{selectedSubmission.participant_name}</span>
+                                        </div>
+                                    </FormField>
+                                    <FormField label="Status">
+                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
+                                            <Clock className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <span className="text-sm font-bold uppercase text-gray-800">{selectedSubmission.status}</span>
+                                        </div>
+                                    </FormField>
+                                    <FormField label="Aktifitas">
+                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
+                                            <Activity className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <span className="truncate text-sm font-semibold text-gray-800">{selectedSubmission.activity_type}</span>
+                                        </div>
+                                    </FormField>
+                                    <FormField label="Tanggal Aktivitas">
+                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
+                                            <Calendar className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <span className="text-sm font-semibold text-gray-800">{selectedSubmission.activity_date ? formatDate(selectedSubmission.activity_date) : '-'}</span>
+                                        </div>
+                                    </FormField>
+                                    <FormField label="Jarak (km)">
+                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
+                                            <Ruler className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <span className="text-sm font-semibold text-gray-800">{selectedSubmission.distance_km}</span>
+                                        </div>
+                                    </FormField>
+                                    <FormField label="Durasi">
+                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
+                                            <Clock className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <span className="text-sm font-semibold text-gray-800">
+                                                {formatDuration(selectedSubmission.duration_minutes, selectedSubmission.duration_seconds)}
+                                            </span>
+                                        </div>
+                                    </FormField>
+                                    {formatPace(selectedSubmission.pace_min_per_km) && (
+                                        <FormField label="Pace">
+                                            <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
+                                                <Activity className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                                <span className="text-sm font-semibold text-gray-800">{formatPace(selectedSubmission.pace_min_per_km)}</span>
+                                            </div>
+                                        </FormField>
+                                    )}
+                                    <FormField label="Waktu Submit">
+                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
+                                            <Calendar className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-gray-800">
+                                                {formatDate(selectedSubmission.submitted_at)}
+                                            </span>
+                                        </div>
+                                    </FormField>
+                                    <FormField label="Sumber" className="col-span-2">
+                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
+                                            <LinkIcon className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <a href={selectedSubmission.source_link} target="_blank" rel="noreferrer" className="flex-1 truncate text-sm font-semibold text-gray-800 hover:text-[#5A2EFF]">
+                                                {selectedSubmission.source_link}
+                                            </a>
+                                            <ExternalLink className="h-4 w-4 flex-shrink-0 text-blue-500" />
+                                        </div>
+                                    </FormField>
+                                </div>
+                            </div>
 
-                            <div className="flex space-x-3 w-full md:w-auto">
-                                {selectedSubmission.status.toUpperCase() === 'PENDING' ? (
+                            {selectedSubmission.status.toUpperCase() === 'PENDING' ? (
+                                <FormField label="Catatan Verifikasi Admin" optional hint="Opsional — wajib diisi jika menolak aktivitas">
+                                    <Textarea
+                                        rows={3}
+                                        placeholder="Ketik catatan di sini..."
+                                        value={reviewNote}
+                                        onChange={(e) => setReviewNote(e.target.value)}
+                                    />
+                                </FormField>
+                            ) : (
+                                <FormField label="Catatan Verifikasi Admin">
+                                    <div className="flex items-start rounded-xl border border-gray-200 bg-white px-3.5 py-3 shadow-sm">
+                                        <FileText className="mr-2.5 mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                                        <span className="text-sm font-medium italic text-gray-700">
+                                            {selectedSubmission.review_note || 'Tidak ada catatan.'}
+                                        </span>
+                                    </div>
+                                </FormField>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col rounded-2xl border border-gray-100 bg-[#F8F9FC] p-5 shadow-sm">
+                            <h3 className="mb-4 flex items-center text-sm font-bold text-gray-900">
+                                <ImageIcon className="mr-2 h-4 w-4 text-[#5A2EFF]" /> Bukti Foto
+                            </h3>
+                            <div
+                                className="relative flex flex-1 cursor-zoom-in items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-inner"
+                                onClick={() => selectedSubmission.proof_photo && setIsZoomed(true)}
+                            >
+                                {selectedSubmission.proof_photo ? (
                                     <>
-                                        <button
-                                            onClick={() => setConfirmAction('rejected')} // TRIGGER KONFIRMASI (2-STEP)
-                                            className="flex-1 md:flex-none px-6 py-2.5 rounded-xl border border-red-200 text-red-600 font-bold text-sm hover:bg-red-50 hover:border-red-300 transition-colors flex items-center justify-center"
-                                        >
-                                            <X className="w-4 h-4 mr-2" /> Reject
-                                        </button>
-                                        <button
-                                            onClick={() => setConfirmAction('approved')} // TRIGGER KONFIRMASI (2-STEP)
-                                            className="flex-1 md:flex-none px-6 py-2.5 bg-[#10B981] text-white rounded-xl font-bold text-sm hover:bg-green-600 shadow-sm transition-colors flex items-center justify-center"
-                                        >
-                                            <Check className="w-4 h-4 mr-2" /> Approve
-                                        </button>
+                                        <img src={selectedSubmission.proof_photo} alt="Bukti" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 hover:bg-black/30">
+                                            <ZoomIn className="h-10 w-10 scale-50 text-white opacity-0 drop-shadow-lg transition-all duration-300 hover:scale-100 hover:opacity-100" />
+                                        </div>
                                     </>
                                 ) : (
-                                    <button onClick={closeModal} className="w-full md:w-auto px-8 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 shadow-sm transition-colors">
-                                        Tutup
-                                    </button>
+                                    <p className="text-sm font-medium text-gray-400">Tidak ada foto bukti</p>
                                 )}
                             </div>
                         </div>
-
-                        {/* ========================================= */}
-                        {/* 3. OVERLAY 2-STEP VERIFICATION (z-index 70) */}
-                        {/* ========================================= */}
-                        {confirmAction && (
-                            <div className="absolute inset-0 z-[70] flex items-center justify-center bg-white/80 backdrop-blur-sm p-6 animate-in fade-in zoom-in-95 duration-200 rounded-3xl">
-                                <div className="bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-md shadow-2xl flex flex-col items-center text-center">
-
-                                    {/* Ikon Dinamis (Hijau untuk Approve, Merah untuk Reject) */}
-                                    {confirmAction === 'approved' ? (
-                                        <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-5">
-                                            <CheckCircle2 className="w-8 h-8" />
-                                        </div>
-                                    ) : (
-                                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-5">
-                                            <AlertTriangle className="w-8 h-8" />
-                                        </div>
-                                    )}
-
-                                    <h3 className="text-xl font-extrabold text-gray-900 mb-2">
-                                        {confirmAction === 'approved' ? 'Setujui Aktivitas?' : 'Tolak Aktivitas?'}
-                                    </h3>
-
-                                    <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                                        {confirmAction === 'approved'
-                                            ? `Anda akan menyetujui aktivitas dari ${selectedSubmission.participant_name}. Sistem akan menambahkan Poin & EXP secara otomatis. Tindakan ini tidak dapat dibatalkan.`
-                                            : `Anda akan menolak pengajuan aktivitas ini. Pengguna tidak akan mendapatkan Poin & EXP. Tindakan ini tidak dapat dibatalkan.`
-                                        }
-                                    </p>
-
-                                    <div className="flex space-x-3 w-full">
-                                        <button
-                                            onClick={() => setConfirmAction(null)}
-                                            disabled={isVerifying}
-                                            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors disabled:opacity-50"
-                                        >
-                                            Kembali
-                                        </button>
-                                        <button
-                                            onClick={executeVerification}
-                                            disabled={isVerifying}
-                                            className={`flex-1 px-4 py-3 rounded-xl text-white font-bold shadow-sm transition-colors disabled:opacity-50 ${confirmAction === 'approved' ? 'bg-[#10B981] hover:bg-green-600' : 'bg-red-600 hover:bg-red-700'
-                                                }`}
-                                        >
-                                            {isVerifying ? 'Memproses...' : 'Ya, Lanjutkan'}
-                                        </button>
-                                    </div>
-
-                                </div>
-                            </div>
-                        )}
-
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
+
+            <Modal
+                open={!!confirmAction && !!selectedSubmission}
+                onClose={() => !isVerifying && setConfirmAction(null)}
+                title={confirmAction === 'approved' ? 'Setujui Aktivitas?' : 'Tolak Aktivitas?'}
+                icon={confirmAction === 'approved' ? CheckCircle2 : AlertTriangle}
+                size="sm"
+                footer={
+                    <>
+                        <Button variant="secondary" className="flex-1" onClick={() => setConfirmAction(null)} disabled={isVerifying}>
+                            Kembali
+                        </Button>
+                        <Button
+                            variant={confirmAction === 'approved' ? 'success' : 'danger'}
+                            className="flex-1"
+                            onClick={executeVerification}
+                            loading={isVerifying}
+                        >
+                            Ya, Lanjutkan
+                        </Button>
+                    </>
+                }
+            >
+                <p className="text-sm leading-relaxed text-gray-500">
+                    {confirmAction === 'approved'
+                        ? `Anda akan menyetujui aktivitas dari ${selectedSubmission?.participant_name}. Sistem akan menambahkan Poin & EXP secara otomatis. Tindakan ini tidak dapat dibatalkan.`
+                        : 'Anda akan menolak pengajuan aktivitas ini. Pengguna tidak akan mendapatkan Poin & EXP. Tindakan ini tidak dapat dibatalkan.'}
+                </p>
+            </Modal>
         </div>
     );
 }

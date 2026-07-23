@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
     Trophy, Crown, ChevronLeft, ChevronRight, Award,
-    CalendarDays, Filter, ChevronDown, Building2, Users
+    CalendarDays, Filter, Building2, Users, FileDown, FileText
 } from 'lucide-react';
+import * as XLSX from 'xlsx-js-style';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { PageHeader, Button, Select, Modal, FormField } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
 const getEntryXp = (entry, isDepartmentView) => {
@@ -81,6 +85,118 @@ export default function LeaderboardPage() {
     const [period, setPeriod] = useState('monthly'); // 'daily' | 'weekly' | 'monthly' | 'annual'
     const [events, setEvents] = useState([]);
     const [selectedEventId, setSelectedEventId] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
+
+    const buildLeaderboardUrl = (page, limit) => {
+        if (activeTab === 'individual') {
+            return period === 'annual'
+                ? `${getBaseUrl()}/leaderboard/annual?page=${page}&limit=${limit}`
+                : `${getBaseUrl()}/leaderboard/${period}?page=${page}&limit=${limit}`;
+        }
+        if (activeTab === 'department') {
+            return `${getBaseUrl()}/leaderboard/departments/${period}?page=${page}&limit=${limit}`;
+        }
+        if (activeTab === 'event' && selectedEventId) {
+            return `${getBaseUrl()}/leaderboard/events/${selectedEventId}?page=${page}&limit=${limit}`;
+        }
+        return null;
+    };
+
+    const fetchAllLeaderboardItems = async () => {
+        const token = localStorage.getItem('jwt_token');
+        const limit = 100;
+        let page = 1;
+        let allItems = [];
+        let totalPages = 1;
+
+        do {
+            const url = buildLeaderboardUrl(page, limit);
+            if (!url) return [];
+
+            const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            const json = await response.json();
+
+            if (!json.success) {
+                throw new Error(json.error?.message || 'Gagal mengambil data leaderboard');
+            }
+
+            allItems = allItems.concat(json.data.items || []);
+            totalPages = json.data.pagination?.totalPages ?? 1;
+            page += 1;
+        } while (page <= totalPages);
+
+        return allItems;
+    };
+
+    const getExportMeta = () => {
+        const tabLabel = activeTab === 'individual' ? 'Individual' : activeTab === 'department' ? 'Departemen' : 'Event';
+        const periodLabel = activeTab === 'event'
+            ? (events.find(e => e.id === selectedEventId)?.name || 'Event')
+            : period;
+        return { tabLabel, periodLabel };
+    };
+
+    const exportExcel = async () => {
+        setIsExporting(true);
+        try {
+            const items = await fetchAllLeaderboardItems();
+            if (!items.length) {
+                alert('Tidak ada data leaderboard untuk diekspor.');
+                return;
+            }
+            const { tabLabel, periodLabel } = getExportMeta();
+            const isDept = activeTab === 'department';
+            const header = isDept
+                ? ['Rank', 'Departemen', 'EXP Total', 'Anggota Aktif', 'Total Anggota']
+                : ['Rank', 'Nama', 'EXP', 'Departemen'];
+            const rows = items.map((item) => isDept
+                ? [item.rank, item.department_name, getEntryXp(item, true), item.active_member_count ?? 0, item.member_count ?? 0]
+                : [item.rank, item.full_name, getEntryXp(item, false), item.department_name || '-']);
+            const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Leaderboard');
+            XLSX.writeFile(wb, `leaderboard_${tabLabel}_${periodLabel}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        } catch (error) {
+            console.error('Export Excel gagal', error);
+            alert('Gagal export Excel');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const exportPdf = async () => {
+        setIsExporting(true);
+        try {
+            const items = await fetchAllLeaderboardItems();
+            if (!items.length) {
+                alert('Tidak ada data leaderboard untuk diekspor.');
+                return;
+            }
+            const { tabLabel, periodLabel } = getExportMeta();
+            const isDept = activeTab === 'department';
+            const doc = new jsPDF();
+            doc.setFontSize(16);
+            doc.text(`Leaderboard ${tabLabel}`, 14, 18);
+            doc.setFontSize(10);
+            doc.text(`Periode: ${periodLabel}`, 14, 26);
+            doc.text(`Diekspor: ${new Date().toLocaleString('id-ID')}`, 14, 32);
+            autoTable(doc, {
+                startY: 38,
+                head: [isDept
+                    ? ['Rank', 'Departemen', 'EXP', 'Aktif', 'Total']
+                    : ['Rank', 'Nama', 'EXP', 'Departemen']],
+                body: items.map((item) => isDept
+                    ? [item.rank, item.department_name, getEntryXp(item, true), item.active_member_count ?? 0, item.member_count ?? 0]
+                    : [item.rank, item.full_name, getEntryXp(item, false), item.department_name || '-']),
+            });
+            doc.save(`leaderboard_${tabLabel}_${periodLabel}_${new Date().toISOString().slice(0, 10)}.pdf`);
+        } catch (error) {
+            console.error('Export PDF gagal', error);
+            alert('Gagal export PDF');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     // 1. FETCH DAFTAR EVENT UNTUK DROPDOWN
     const fetchEvents = async () => {
@@ -204,11 +320,20 @@ export default function LeaderboardPage() {
     return (
         <div className="space-y-6 relative">
 
-            {/* HEADER TITLE */}
-            <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Leaderboard</h1>
-                <p className="text-sm text-gray-500 mt-1">Pantau peringkat pengguna berdasarkan akumulasi EXP</p>
-            </div>
+            <PageHeader
+                title="Leaderboard"
+                subtitle="Pantau peringkat pengguna berdasarkan akumulasi EXP"
+                actions={
+                    <>
+                        <Button variant="secondary" size="sm" icon={FileDown} onClick={exportExcel} loading={isExporting}>
+                            Excel
+                        </Button>
+                        <Button variant="secondary" size="sm" icon={FileText} onClick={exportPdf} loading={isExporting}>
+                            PDF
+                        </Button>
+                    </>
+                }
+            />
 
             {/* TABS MENU */}
             <div className="border-b border-gray-200">
@@ -258,11 +383,10 @@ export default function LeaderboardPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="relative w-full sm:w-80">
-                        <select
+                    <FormField label="Pilih Event" className="w-full sm:w-80">
+                        <Select
                             value={selectedEventId}
                             onChange={(e) => { setSelectedEventId(e.target.value); setCurrentPage(1); }}
-                            className="w-full pl-4 pr-10 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-bold text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]"
                         >
                             {events.length === 0 ? (
                                 <option value="">-- Tidak ada event aktif --</option>
@@ -271,11 +395,8 @@ export default function LeaderboardPage() {
                                     <option key={ev.id} value={ev.id}>{ev.name}</option>
                                 ))
                             )}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <ChevronDown className="w-4 h-4 text-gray-500" />
-                        </div>
-                    </div>
+                        </Select>
+                    </FormField>
                 )}
             </div>
 
@@ -414,61 +535,51 @@ export default function LeaderboardPage() {
                 </>
             )}
 
-            {selectedDepartment && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeDepartmentMembers}>
-                    <div
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-[#F8F9FC]">
-                            <div>
-                                <h3 className="font-bold text-gray-900 flex items-center">
-                                    <Users className="w-4 h-4 text-[#5A2EFF] mr-2" />
-                                    {selectedDepartment.department_name ?? 'Departemen'}
-                                </h3>
-                                <p className="text-xs text-gray-500 mt-1">Anggota dengan XP tertinggi · periode {period}</p>
-                            </div>
-                            <button onClick={closeDepartmentMembers} className="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none">&times;</button>
-                        </div>
-                        <div className="overflow-y-auto max-h-[60vh]">
-                            {isMembersLoading ? (
-                                <div className="p-10 text-center text-gray-500">Memuat anggota...</div>
-                            ) : departmentMembers.length === 0 ? (
-                                <div className="p-10 text-center text-gray-500">Belum ada anggota aktif di departemen ini.</div>
-                            ) : (
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-white border-b border-gray-100">
-                                        <tr>
-                                            <th className="px-6 py-3 text-[11px] uppercase text-gray-500 font-bold w-16 text-center">Rank</th>
-                                            <th className="px-6 py-3 text-[11px] uppercase text-gray-500 font-bold">Nama</th>
-                                            <th className="px-6 py-3 text-[11px] uppercase text-gray-500 font-bold text-right pr-8">XP</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {departmentMembers.map((member) => (
-                                            <tr key={member.user_id} className="hover:bg-indigo-50/30">
-                                                <td className="px-6 py-3 text-center font-bold text-gray-600">{member.rank}</td>
-                                                <td className="px-6 py-3">
-                                                    <div className="flex items-center gap-3">
-                                                        <img
-                                                            src={member.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`}
-                                                            alt={member.full_name}
-                                                            className="w-9 h-9 rounded-full object-cover border border-gray-200"
-                                                            onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`; }}
-                                                        />
-                                                        <span className="font-semibold text-gray-900">{member.full_name}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-3 text-right pr-8 font-bold text-gray-800">{(member.xp ?? 0).toLocaleString()} EXP</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
+            <Modal
+                open={!!selectedDepartment}
+                onClose={closeDepartmentMembers}
+                title={selectedDepartment?.department_name ?? 'Departemen'}
+                subtitle={`Anggota dengan XP tertinggi · periode ${period}`}
+                icon={Users}
+                size="lg"
+            >
+                {isMembersLoading ? (
+                    <div className="py-10 text-center text-gray-500">Memuat anggota...</div>
+                ) : departmentMembers.length === 0 ? (
+                    <div className="py-10 text-center text-gray-500">Belum ada anggota aktif di departemen ini.</div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="border-b border-gray-100 bg-white">
+                                <tr>
+                                    <th className="w-16 px-2 py-3 text-center text-[11px] font-bold uppercase text-gray-500">Rank</th>
+                                    <th className="px-2 py-3 text-[11px] font-bold uppercase text-gray-500">Nama</th>
+                                    <th className="pr-2 py-3 text-right text-[11px] font-bold uppercase text-gray-500">XP</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {departmentMembers.map((member) => (
+                                    <tr key={member.user_id} className="hover:bg-indigo-50/30">
+                                        <td className="px-2 py-3 text-center font-bold text-gray-600">{member.rank}</td>
+                                        <td className="px-2 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <img
+                                                    src={member.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`}
+                                                    alt={member.full_name}
+                                                    className="h-9 w-9 rounded-full border border-gray-200 object-cover"
+                                                    onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`; }}
+                                                />
+                                                <span className="font-semibold text-gray-900">{member.full_name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-2 py-3 text-right font-bold text-gray-800">{(member.xp ?? 0).toLocaleString()} EXP</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 }

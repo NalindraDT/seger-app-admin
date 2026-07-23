@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
     CalendarDays, Plus, Edit, Trash2, Eye, ChevronLeft, ChevronRight,
-    Image as ImageIcon, X, UploadCloud, CheckCircle2,
-    Calendar, Clock, Info, ChevronDown, Flag
+    Image as ImageIcon, Calendar, Clock, Info, Flag
 } from 'lucide-react';
+import {
+    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload
+} from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
 export default function EventsPage() {
@@ -21,6 +23,7 @@ export default function EventsPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [allActivityTypes, setAllActivityTypes] = useState([]);
 
     // FORM DATA
     const [formData, setFormData] = useState({
@@ -33,8 +36,22 @@ export default function EventsPage() {
         published_at: '',
         status: 'active',
         banner_image: null,
-        imagePreview: null
+        imagePreview: null,
+        allowed_activities: [],
     });
+
+    const fetchActivityTypes = async () => {
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const response = await fetch(`${getBaseUrl()}/admin/activity-types`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const json = await response.json();
+            if (json.success) setAllActivityTypes(json.data || []);
+        } catch (error) {
+            console.error('Gagal mengambil tipe aktivitas', error);
+        }
+    };
 
     const fetchEvents = async () => {
         setIsLoading(true);
@@ -63,6 +80,7 @@ export default function EventsPage() {
 
     useEffect(() => {
         fetchEvents();
+        fetchActivityTypes();
     }, [currentPage]);
 
     const showToast = (message) => {
@@ -78,11 +96,43 @@ export default function EventsPage() {
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     };
 
+    const emptyAllowedActivity = () => ({
+        activity_type_id: '',
+        min_distance_km: '',
+        min_duration_minutes: '',
+        min_calories: '',
+        max_submissions_per_day: '',
+        max_submissions_total: '',
+    });
+
+    const addAllowedActivity = () => {
+        setFormData((prev) => ({
+            ...prev,
+            allowed_activities: [...prev.allowed_activities, emptyAllowedActivity()],
+        }));
+    };
+
+    const updateAllowedActivity = (index, field, value) => {
+        setFormData((prev) => {
+            const next = [...prev.allowed_activities];
+            next[index] = { ...next[index], [field]: value };
+            return { ...prev, allowed_activities: next };
+        });
+    };
+
+    const removeAllowedActivity = (index) => {
+        setFormData((prev) => ({
+            ...prev,
+            allowed_activities: prev.allowed_activities.filter((_, i) => i !== index),
+        }));
+    };
+
     const openAddModal = () => {
         setFormData({
             name: '', description: '', rules: '', color_theme: '#5A2EFF',
             start_at: '', end_at: '', published_at: '', status: 'active',
-            banner_image: null, imagePreview: null
+            banner_image: null, imagePreview: null,
+            allowed_activities: [],
         });
         setIsAddModalOpen(true);
     };
@@ -99,7 +149,15 @@ export default function EventsPage() {
             published_at: formatDateTimeLocal(event.published_at),
             status: event.status || 'active',
             banner_image: null,
-            imagePreview: event.banner_image_url
+            imagePreview: event.banner_image_url,
+            allowed_activities: (event.allowed_activities || []).map((item) => ({
+                activity_type_id: String(item.activity_type_id),
+                min_distance_km: item.min_distance_km ?? '',
+                min_duration_minutes: item.min_duration_minutes ?? '',
+                min_calories: item.min_calories ?? '',
+                max_submissions_per_day: item.max_submissions_per_day ?? '',
+                max_submissions_total: item.max_submissions_total ?? '',
+            })),
         });
         setIsEditModalOpen(true);
     };
@@ -141,6 +199,19 @@ export default function EventsPage() {
 
             if (formData.banner_image) data.append('banner_image', formData.banner_image);
 
+            const allowedPayload = formData.allowed_activities
+                .filter((item) => item.activity_type_id)
+                .map((item) => ({
+                    activity_type_id: Number(item.activity_type_id),
+                    ...(item.min_distance_km !== '' ? { min_distance_km: Number(item.min_distance_km) } : {}),
+                    ...(item.min_duration_minutes !== '' ? { min_duration_minutes: Number(item.min_duration_minutes) } : {}),
+                    ...(item.min_calories !== '' ? { min_calories: Number(item.min_calories) } : {}),
+                    ...(item.max_submissions_per_day !== '' ? { max_submissions_per_day: Number(item.max_submissions_per_day) } : {}),
+                    ...(item.max_submissions_total !== '' ? { max_submissions_total: Number(item.max_submissions_total) } : {}),
+                }));
+
+            data.append('allowed_activities', JSON.stringify(allowedPayload));
+
             const url = mode === 'add'
                 ? `${getBaseUrl()}/admin/events`
                 : `${getBaseUrl()}/admin/events/${selectedEvent.id}`;
@@ -175,32 +246,23 @@ export default function EventsPage() {
 
     return (
         <div className="space-y-6 relative">
-            {/* TOAST */}
-            {toastMessage && (
-                <div className="fixed top-8 right-8 z-[100] animate-in slide-in-from-right-8 fade-in duration-300">
-                    <div className="bg-white border border-green-100 shadow-xl rounded-xl p-4 flex items-center space-x-3 pr-6">
-                        <div className="bg-green-100 p-1.5 rounded-full"><CheckCircle2 className="w-5 h-5 text-[#10B981]" /></div>
-                        <div><p className="text-sm font-extrabold text-gray-900">Sistem</p><p className="text-xs font-medium text-gray-500">{toastMessage}</p></div>
-                    </div>
-                </div>
-            )}
+            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
 
-            {/* HEADER */}
-            <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Events / Tantangan</h1>
-                <p className="text-sm text-gray-500 mt-1">Kelola event khusus untuk mendapatkan pencapaian lebih</p>
-            </div>
+            <PageHeader
+                title="Events / Tantangan"
+                subtitle="Kelola event khusus untuk mendapatkan pencapaian lebih"
+                actions={
+                    <Button icon={Plus} onClick={openAddModal}>
+                        Tambah Event
+                    </Button>
+                }
+            />
 
-            {/* TOOLBAR */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center space-x-2 text-sm font-bold text-gray-600 bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm">
                     <CalendarDays className="w-4 h-4 text-[#5A2EFF]" />
                     <span>Total: {totalItems} Event</span>
                 </div>
-
-                <button onClick={openAddModal} className="flex items-center px-4 py-2.5 bg-[#5A2EFF] text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-sm transition-colors">
-                    <Plus className="w-4 h-4 mr-2" /> Tambah Event
-                </button>
             </div>
 
             {/* TABLE */}
@@ -285,240 +347,379 @@ export default function EventsPage() {
                 </div>
             </div>
 
-            {/* ========================================= */}
-            {/* MODAL FORM (REUSABLE TAMBAH & EDIT)       */}
-            {/* ========================================= */}
-            {(isAddModalOpen || isEditModalOpen) && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col my-auto border border-gray-100">
-                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center border border-indigo-100"><CalendarDays className="w-5 h-5 text-[#5A2EFF]" /></div>
-                                <div>
-                                    <h2 className="text-lg font-extrabold text-gray-900">{isAddModalOpen ? 'Tambah Event Baru' : 'Edit Event'}</h2>
-                                    <p className="text-[11px] font-medium text-gray-500">Kelola informasi dan tantangan acara</p>
-                                </div>
-                            </div>
-                            <button onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} className="p-2 text-gray-400 hover:bg-gray-200 rounded-xl transition-all"><X className="w-5 h-5" /></button>
+            <Modal
+                open={isAddModalOpen || isEditModalOpen}
+                onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}
+                title={isAddModalOpen ? 'Tambah Event Baru' : 'Edit Event'}
+                subtitle="Kelola informasi dan tantangan acara"
+                icon={CalendarDays}
+                size="full"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}>
+                            Batal
+                        </Button>
+                        <Button
+                            type="submit"
+                            form="event-form"
+                            variant="primary"
+                            loading={isSubmitting}
+                        >
+                            Simpan Event
+                        </Button>
+                    </>
+                }
+            >
+                <form
+                    id="event-form"
+                    onSubmit={(e) => handleSubmit(e, isAddModalOpen ? 'add' : 'edit')}
+                    className="admin-form space-y-8"
+                >
+                    {/* ── Informasi Dasar ── */}
+                    <section className="space-y-4">
+                        <div className="border-b border-gray-100 pb-2">
+                            <h3 className="text-sm font-extrabold text-gray-900">Informasi Dasar</h3>
+                            <p className="mt-0.5 text-xs text-gray-500">Nama, deskripsi, dan aturan event</p>
                         </div>
 
-                        <form onSubmit={(e) => handleSubmit(e, isAddModalOpen ? 'add' : 'edit')}>
-                            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 bg-white">
+                        <FormField label="Nama Event" required>
+                            <Input
+                                icon={Flag}
+                                type="text"
+                                required
+                                placeholder="Misal: PLTU Run Challenge Mei 2026"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            />
+                        </FormField>
 
-                                {/* KOLOM KIRI: Data Input */}
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Nama Event</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Flag className="w-4 h-4 text-gray-400" /></div>
-                                            <input type="text" required placeholder="Misal: Challenge Mei" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full pl-10 pr-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all" />
-                                        </div>
-                                    </div>
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                            <FormField label="Deskripsi Event" optional hint="Tampil di halaman detail event">
+                                <Textarea
+                                    rows={4}
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    placeholder="Penjelasan singkat tentang event..."
+                                />
+                            </FormField>
+                            <FormField label="Aturan Event" optional hint="Syarat umum partisipasi">
+                                <Textarea
+                                    rows={4}
+                                    value={formData.rules}
+                                    onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
+                                    placeholder="Aturan dan ketentuan event..."
+                                />
+                            </FormField>
+                        </div>
+                    </section>
 
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Deskripsi Event</label>
-                                        <textarea rows="3" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] resize-none" placeholder="Penjelasan singkat event..." />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Aturan Event</label>
-                                        <textarea rows="3" value={formData.rules} onChange={(e) => setFormData({ ...formData, rules: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] resize-none" placeholder="Aturan dan ketentuan event..." />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Waktu Pelaksanaan Mulai</label>
-                                            <div className="relative">
-                                                <input type="datetime-local" required value={formData.start_at} onChange={(e) => setFormData({ ...formData, start_at: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Waktu Pelaksanaan Selesai</label>
-                                            <div className="relative">
-                                                <input type="datetime-local" required value={formData.end_at} onChange={(e) => setFormData({ ...formData, end_at: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Tanggal Launching di App</label>
-                                        <input type="datetime-local" required value={formData.published_at} onChange={(e) => setFormData({ ...formData, published_at: e.target.value })} className="w-full px-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Tema Warna Event</label>
-                                            <div className="flex items-center space-x-2 bg-[#F8F9FC] border border-gray-200 rounded-xl p-2 focus-within:ring-2 focus-within:ring-[#5A2EFF]">
-                                                <input type="color" value={formData.color_theme} onChange={(e) => setFormData({ ...formData, color_theme: e.target.value })} className="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent p-0" />
-                                                <input type="text" value={formData.color_theme.toUpperCase()} onChange={(e) => setFormData({ ...formData, color_theme: e.target.value })} className="w-full bg-transparent text-sm font-mono font-bold text-gray-700 outline-none uppercase pl-2" />
-                                            </div>
-                                        </div>
-
-                                        {/* FIELD STATUS: HANYA MUNCUL SAAT EDIT */}
-                                        {isEditModalOpen && (
-                                            <div>
-                                                <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Status Event</label>
-                                                <div className="relative">
-                                                    <select
-                                                        value={formData.status}
-                                                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                                        className="w-full pl-4 pr-10 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 appearance-none focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all"
-                                                    >
-                                                        <option value="active">Active (Tampil ke User)</option>
-                                                        <option value="archived">Archived (Selesai/Tutup)</option>
-                                                    </select>
-                                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><ChevronDown className="w-4 h-4 text-gray-500" /></div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                </div>
-
-                                {/* KOLOM KANAN: Upload Gambar Banner */}
-                                <div className="flex flex-col">
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Banner Event</label>
-                                    <div className="flex-1 bg-[#F8F9FC] border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center p-6 relative overflow-hidden group hover:border-[#5A2EFF] transition-colors min-h-[200px]">
-                                        {formData.imagePreview ? (
-                                            <>
-                                                <img src={formData.imagePreview.startsWith('blob:') || formData.imagePreview.startsWith('http') ? formData.imagePreview : `https://pltuapp.potydev.cloud/${formData.imagePreview}`} className="w-full h-full object-cover absolute inset-0 z-0" alt="Preview Banner" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-10">
-                                                    <UploadCloud className="w-8 h-8 text-white mb-2" />
-                                                    <span className="text-white text-xs font-bold bg-white/20 px-3 py-1 rounded-full backdrop-blur-md">Ganti Banner</span>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="flex flex-col items-center text-center z-10">
-                                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
-                                                    <ImageIcon className="w-8 h-8 text-gray-400" />
-                                                </div>
-                                                <p className="text-sm font-bold text-gray-700 mb-1">Pilih Gambar Banner</p>
-                                                <p className="text-[10px] text-gray-500 max-w-[200px]">Format: JPG, PNG. Rekomendasi rasio memanjang (Landscape).</p>
-                                            </div>
-                                        )}
-                                        {/* Input required dihapus saat edit, karena gambar lama mungkin masih dipakai */}
-                                        <input type="file" accept="image/*" onChange={handleImageChange} required={isAddModalOpen} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
-                                    </div>
-                                </div>
-
-                            </div>
-                            <div className="px-8 py-5 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3 rounded-b-3xl">
-                                <button type="button" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} className="px-6 py-2.5 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-white transition-colors">Batal</button>
-                                <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 rounded-xl bg-[#5A2EFF] text-white font-bold shadow-sm hover:bg-indigo-700 transition-colors flex items-center">
-                                    {isSubmitting ? 'Menyimpan...' : 'Simpan Event'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* ========================================= */}
-            {/* MODAL DETAIL (VIEW ONLY)                  */}
-            {/* ========================================= */}
-            {isDetailModalOpen && selectedEvent && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 flex flex-col">
-
-                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center border border-indigo-100">
-                                    <Info className="w-5 h-5 text-[#5A2EFF]" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-extrabold text-gray-900">Detail Event</h2>
-                                    <p className="text-[11px] font-medium text-gray-500">Informasi acara lengkap</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsDetailModalOpen(false)} className="p-2 text-gray-400 hover:bg-gray-200 rounded-xl transition-all">
-                                <X className="w-5 h-5" />
-                            </button>
+                    {/* ── Jadwal ── */}
+                    <section className="space-y-4">
+                        <div className="border-b border-gray-100 pb-2">
+                            <h3 className="text-sm font-extrabold text-gray-900">Jadwal Event</h3>
+                            <p className="mt-0.5 text-xs text-gray-500">Periode pelaksanaan dan waktu publikasi di aplikasi</p>
                         </div>
 
-                        <div className="p-8 space-y-6 bg-white overflow-y-auto max-h-[70vh]">
-                            {/* Banner Memanjang */}
-                            <div className="w-full aspect-[21/9] bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 shadow-inner relative">
-                                {selectedEvent.banner_image_url ? (
-                                    <img
-                                        src={selectedEvent.banner_image_url.startsWith('http') ? selectedEvent.banner_image_url : `https://pltuapp.potydev.cloud/${selectedEvent.banner_image_url}`}
-                                        className="w-full h-full object-cover" alt="Banner"
-                                        onError={(e) => { e.target.onerror = null; e.target.src = "https://ui-avatars.com/api/?name=Event&background=F3F4F6"; }}
-                                    />
-                                ) : (
-                                    <div className="flex h-full items-center justify-center text-gray-400">Tidak ada banner</div>
-                                )}
-                                {/* Overlay warna tema */}
-                                <div className="absolute inset-0 opacity-10" style={{ backgroundColor: selectedEvent.color_theme || '#000' }}></div>
-                            </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <FormField label="Waktu Mulai" required>
+                                <Input
+                                    icon={Calendar}
+                                    type="datetime-local"
+                                    required
+                                    value={formData.start_at}
+                                    onChange={(e) => setFormData({ ...formData, start_at: e.target.value })}
+                                />
+                            </FormField>
+                            <FormField label="Waktu Selesai" required>
+                                <Input
+                                    icon={Clock}
+                                    type="datetime-local"
+                                    required
+                                    value={formData.end_at}
+                                    onChange={(e) => setFormData({ ...formData, end_at: e.target.value })}
+                                />
+                            </FormField>
+                            <FormField label="Launching di App" required hint="Kapan event tampil ke user">
+                                <Input
+                                    icon={CalendarDays}
+                                    type="datetime-local"
+                                    required
+                                    value={formData.published_at}
+                                    onChange={(e) => setFormData({ ...formData, published_at: e.target.value })}
+                                />
+                            </FormField>
+                        </div>
+                    </section>
 
-                            {/* Informasi Text */}
+                    {/* ── Tampilan ── */}
+                    <section className="space-y-4">
+                        <div className="border-b border-gray-100 pb-2">
+                            <h3 className="text-sm font-extrabold text-gray-900">Tampilan & Banner</h3>
+                            <p className="mt-0.5 text-xs text-gray-500">Visual event di aplikasi mobile</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                            <FormField
+                                label="Banner Event"
+                                optional={!isAddModalOpen}
+                                required={isAddModalOpen}
+                                hint="JPG/PNG, rasio landscape (mis. 16:9)"
+                                className="lg:col-span-2"
+                            >
+                                <FileUpload
+                                    label="Klik untuk upload banner"
+                                    hint="Rekomendasi min. 1200×675 px"
+                                    accept="image/*"
+                                    required={isAddModalOpen}
+                                    preview={
+                                        formData.imagePreview
+                                            ? (formData.imagePreview.startsWith('blob:') || formData.imagePreview.startsWith('http')
+                                                ? formData.imagePreview
+                                                : `https://pltuapp.potydev.cloud/${formData.imagePreview}`)
+                                            : null
+                                    }
+                                    onChange={handleImageChange}
+                                    className="min-h-[180px]"
+                                />
+                            </FormField>
+
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-3xl font-black text-gray-900 leading-tight">{selectedEvent.name}</h3>
-                                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase ${selectedEvent.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                                        {selectedEvent.status}
-                                    </span>
-                                </div>
+                                <FormField label="Tema Warna" hint="Warna aksen di aplikasi">
+                                    <div className="flex h-10 items-center gap-2 rounded-xl border border-input bg-background px-2 shadow-sm focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10">
+                                        <input
+                                            type="color"
+                                            value={formData.color_theme}
+                                            onChange={(e) => setFormData({ ...formData, color_theme: e.target.value })}
+                                            className="h-8 w-8 shrink-0 cursor-pointer rounded-lg border-0 bg-transparent p-0"
+                                            aria-label="Pilih warna tema"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={formData.color_theme.toUpperCase()}
+                                            onChange={(e) => setFormData({ ...formData, color_theme: e.target.value })}
+                                            placeholder="#5A2EFF"
+                                            className="min-w-0 flex-1 bg-transparent text-sm font-mono font-bold uppercase text-gray-700 outline-none"
+                                            aria-label="Kode warna hex"
+                                        />
+                                    </div>
+                                </FormField>
 
-                                <div className="grid grid-cols-2 gap-4 pt-2">
-                                    <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
-                                        <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
-                                            <Calendar className="w-3.5 h-3.5 mr-1.5" /> Pelaksanaan Mulai
-                                        </div>
-                                        <p className="text-sm font-black text-gray-800">{formatDate(selectedEvent.start_at)}</p>
-                                    </div>
-                                    <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
-                                        <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
-                                            <Clock className="w-3.5 h-3.5 mr-1.5" /> Pelaksanaan Selesai
-                                        </div>
-                                        <p className="text-sm font-black text-gray-800">{formatDate(selectedEvent.end_at)}</p>
-                                    </div>
-                                </div>
-
-                                {selectedEvent.published_at && (
-                                    <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
-                                        <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
-                                            <CalendarDays className="w-3.5 h-3.5 mr-1.5" /> Launching di App
-                                        </div>
-                                        <p className="text-sm font-black text-gray-800">{formatDate(selectedEvent.published_at)}</p>
-                                    </div>
+                                {isEditModalOpen && (
+                                    <FormField label="Status Event">
+                                        <Select
+                                            value={formData.status}
+                                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                        >
+                                            <option value="active">Active — Tampil ke user</option>
+                                            <option value="archived">Archived — Event selesai</option>
+                                        </Select>
+                                    </FormField>
                                 )}
+                            </div>
+                        </div>
+                    </section>
 
-                                {selectedEvent.description && (
-                                    <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Deskripsi</p>
-                                        <p className="text-sm text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">{selectedEvent.description}</p>
+                    {/* ── Aktivitas Diizinkan ── */}
+                    <section className="space-y-4">
+                        <div className="flex flex-col gap-3 border-b border-gray-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h3 className="text-sm font-extrabold text-gray-900">Aktivitas Diizinkan</h3>
+                                <p className="mt-0.5 text-xs text-gray-500">
+                                    Kosong = semua tipe aktivitas diizinkan tanpa restriksi khusus
+                                </p>
+                            </div>
+                            <Button type="button" variant="secondary" size="sm" onClick={addAllowedActivity}>
+                                + Tambah Aktivitas
+                            </Button>
+                        </div>
+
+                        {formData.allowed_activities.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-gray-200 bg-[#F8F9FC] px-4 py-8 text-center">
+                                <p className="text-sm font-medium text-gray-500">Belum ada restriksi aktivitas</p>
+                                <p className="mt-1 text-xs text-gray-400">Semua jenis aktivitas dapat disubmit selama event berlangsung</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {formData.allowed_activities.map((item, index) => (
+                                    <div key={index} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                                        <div className="flex items-center justify-between border-b border-gray-100 bg-[#F8F9FC] px-4 py-2.5">
+                                            <span className="text-xs font-extrabold uppercase tracking-wide text-gray-600">
+                                                Aktivitas #{index + 1}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeAllowedActivity(index)}
+                                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-red-500 transition-colors hover:bg-red-50"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                                Hapus
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-4 p-4">
+                                            <FormField label="Tipe Aktivitas" required>
+                                                <Select
+                                                    value={item.activity_type_id}
+                                                    onChange={(e) => updateAllowedActivity(index, 'activity_type_id', e.target.value)}
+                                                >
+                                                    <option value="" disabled>Pilih tipe aktivitas</option>
+                                                    {allActivityTypes.map((type) => (
+                                                        <option key={type.id} value={type.id}>{type.name}</option>
+                                                    ))}
+                                                </Select>
+                                            </FormField>
+
+                                            <div className="space-y-3">
+                                                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Syarat Minimum</p>
+                                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                                    <FormField label="Min. Jarak (km)" optional>
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            placeholder="0"
+                                                            value={item.min_distance_km}
+                                                            onChange={(e) => updateAllowedActivity(index, 'min_distance_km', e.target.value)}
+                                                        />
+                                                    </FormField>
+                                                    <FormField label="Min. Durasi (menit)" optional>
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="0"
+                                                            value={item.min_duration_minutes}
+                                                            onChange={(e) => updateAllowedActivity(index, 'min_duration_minutes', e.target.value)}
+                                                        />
+                                                    </FormField>
+                                                    <FormField label="Min. Kalori (kcal)" optional>
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="0"
+                                                            value={item.min_calories}
+                                                            onChange={(e) => updateAllowedActivity(index, 'min_calories', e.target.value)}
+                                                        />
+                                                    </FormField>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Batas Submit</p>
+                                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                    <FormField label="Maks. per Hari" optional hint="Kosong = tidak dibatasi">
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="Tidak dibatasi"
+                                                            value={item.max_submissions_per_day}
+                                                            onChange={(e) => updateAllowedActivity(index, 'max_submissions_per_day', e.target.value)}
+                                                        />
+                                                    </FormField>
+                                                    <FormField label="Maks. Total Event" optional hint="Kosong = tidak dibatasi">
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="Tidak dibatasi"
+                                                            value={item.max_submissions_total}
+                                                            onChange={(e) => updateAllowedActivity(index, 'max_submissions_total', e.target.value)}
+                                                        />
+                                                    </FormField>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                </form>
+            </Modal>
 
-                                {selectedEvent.rules && (
-                                    <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Aturan</p>
-                                        <p className="text-sm text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">{selectedEvent.rules}</p>
-                                    </div>
-                                )}
+            <Modal
+                open={isDetailModalOpen && !!selectedEvent}
+                onClose={() => setIsDetailModalOpen(false)}
+                title="Detail Event"
+                subtitle="Informasi acara lengkap"
+                icon={Info}
+                size="lg"
+                footer={
+                    <Button variant="secondary" onClick={() => setIsDetailModalOpen(false)}>
+                        Tutup Detail
+                    </Button>
+                }
+            >
+                <div className="space-y-6">
+                    <div className="w-full aspect-[21/9] bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 shadow-inner relative">
+                        {selectedEvent?.banner_image_url ? (
+                            <img
+                                src={selectedEvent.banner_image_url.startsWith('http') ? selectedEvent.banner_image_url : `https://pltuapp.potydev.cloud/${selectedEvent.banner_image_url}`}
+                                className="w-full h-full object-cover" alt="Banner"
+                                onError={(e) => { e.target.onerror = null; e.target.src = "https://ui-avatars.com/api/?name=Event&background=F3F4F6"; }}
+                            />
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-gray-400">Tidak ada banner</div>
+                        )}
+                        <div className="absolute inset-0 opacity-10" style={{ backgroundColor: selectedEvent?.color_theme || '#000' }}></div>
+                    </div>
 
-                                <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100 flex items-center justify-between">
-                                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Tema Warna Terpilih</span>
-                                    <span
-                                        className="px-4 py-1.5 rounded-md text-[10px] font-mono font-extrabold uppercase text-white shadow-sm"
-                                        style={{ backgroundColor: selectedEvent.color_theme || '#9CA3AF' }}
-                                    >
-                                        {selectedEvent.color_theme || '#9CA3AF'}
-                                    </span>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-3xl font-black text-gray-900 leading-tight">{selectedEvent?.name}</h3>
+                            <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase ${selectedEvent?.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                                {selectedEvent?.status}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                            <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
+                                <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
+                                    <Calendar className="w-3.5 h-3.5 mr-1.5" /> Pelaksanaan Mulai
                                 </div>
+                                <p className="text-sm font-black text-gray-800">{formatDate(selectedEvent?.start_at)}</p>
+                            </div>
+                            <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
+                                <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
+                                    <Clock className="w-3.5 h-3.5 mr-1.5" /> Pelaksanaan Selesai
+                                </div>
+                                <p className="text-sm font-black text-gray-800">{formatDate(selectedEvent?.end_at)}</p>
                             </div>
                         </div>
 
-                        <div className="px-8 py-5 border-t border-gray-100 bg-white flex justify-end">
-                            <button onClick={() => setIsDetailModalOpen(false)} className="px-8 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors shadow-sm">
-                                Tutup Detail
-                            </button>
-                        </div>
+                        {selectedEvent?.published_at && (
+                            <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
+                                <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
+                                    <CalendarDays className="w-3.5 h-3.5 mr-1.5" /> Launching di App
+                                </div>
+                                <p className="text-sm font-black text-gray-800">{formatDate(selectedEvent.published_at)}</p>
+                            </div>
+                        )}
 
+                        {selectedEvent?.description && (
+                            <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Deskripsi</p>
+                                <p className="text-sm text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">{selectedEvent.description}</p>
+                            </div>
+                        )}
+
+                        {selectedEvent?.rules && (
+                            <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Aturan</p>
+                                <p className="text-sm text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">{selectedEvent.rules}</p>
+                            </div>
+                        )}
+
+                        <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100 flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Tema Warna Terpilih</span>
+                            <span
+                                className="px-4 py-1.5 rounded-md text-[10px] font-mono font-extrabold uppercase text-white shadow-sm"
+                                style={{ backgroundColor: selectedEvent?.color_theme || '#9CA3AF' }}
+                            >
+                                {selectedEvent?.color_theme || '#9CA3AF'}
+                            </span>
+                        </div>
                     </div>
                 </div>
-            )}
+            </Modal>
 
         </div>
     );

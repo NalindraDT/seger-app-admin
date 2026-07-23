@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import {
-    Users, Search, Upload, Edit, Eye, EyeOff, ChevronLeft, ChevronRight,
-    X, CheckCircle2, AlertTriangle, FileDown, UploadCloud, FileSpreadsheet,
-    User as UserIcon, Mail, TrendingUp, Flame, Trash2, Plus
+    Users, Upload, Edit, Eye, ChevronLeft, ChevronRight,
+    FileDown, FileSpreadsheet, User as UserIcon, Mail, TrendingUp, Flame, Trash2, Plus
 } from 'lucide-react';
+import {
+    FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar
+} from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
 export default function UsersPage() {
@@ -25,7 +27,6 @@ export default function UsersPage() {
         email: '', password: '', full_name: '', phone_number: '', department_id: '', company_id: '', role: 'participant'
     });
     const [addFormErrors, setAddFormErrors] = useState({});
-    const [showAddPassword, setShowAddPassword] = useState(false);
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
@@ -131,7 +132,6 @@ export default function UsersPage() {
         setIsAddModalOpen(false);
         setAddFormData({ email: '', password: '', full_name: '', phone_number: '', department_id: '', company_id: '', role: 'participant' });
         setAddFormErrors({});
-        setShowAddPassword(false);
     };
 
     const handleAddSubmit = async (e) => {
@@ -350,15 +350,7 @@ export default function UsersPage() {
 
     return (
         <div className="space-y-6 relative">
-            {/* TOAST */}
-            {toastMessage && (
-                <div className="fixed top-8 right-8 z-[100] animate-in slide-in-from-right-8 fade-in duration-300">
-                    <div className="bg-white border border-green-100 shadow-xl rounded-xl p-4 flex items-center space-x-3 pr-6">
-                        <div className="bg-green-100 p-1.5 rounded-full"><CheckCircle2 className="w-5 h-5 text-[#10B981]" /></div>
-                        <div><p className="text-sm font-extrabold text-gray-900">Sistem</p><p className="text-xs font-medium text-gray-500">{toastMessage}</p></div>
-                    </div>
-                </div>
-            )}
+            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
 
             {/* HEADER */}
             <div>
@@ -375,17 +367,14 @@ export default function UsersPage() {
             </div>
 
             {/* TOOLBAR */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-8">
-                <div className="relative w-full md:max-w-md">
-                    <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                        type="text"
-                        placeholder="Cari email atau nama user..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]"
-                    />
-                </div>
+            <div className="mt-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+                <SearchBar
+                    label="Cari User"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Cari email atau nama user..."
+                    className="w-full md:max-w-md"
+                />
                 <div className="flex space-x-3 w-full md:w-auto">
                     <button onClick={() => setIsAddModalOpen(true)} className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-[#5A2EFF] text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-sm transition-colors">
                         <Plus className="w-4 h-4 mr-2" /> Tambah
@@ -489,362 +478,319 @@ export default function UsersPage() {
                 </div>
             </div>
 
-            {/* MODAL TAMBAH USER MANUAl */}
-            {isAddModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-indigo-50/50">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-indigo-100 text-[#5A2EFF] rounded-full flex items-center justify-center">
-                                    <Plus className="w-4 h-4" />
-                                </div>
-                                <h2 className="text-lg font-bold text-gray-900">Tambah User Baru</h2>
-                            </div>
-                            <button onClick={closeAddModal} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-                        </div>
-                        <form onSubmit={handleAddSubmit}>
-                            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="col-span-2">
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Nama Lengkap</label>
-                                        <input type="text" required value={addFormData.full_name} onChange={(e) => setAddFormData({ ...addFormData, full_name: e.target.value })} placeholder="Misal: John Doe" className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
-                                    </div>
-                                    <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Alamat Email</label>
-                                        <input
-                                            type="email"
-                                            required
-                                            value={addFormData.email}
-                                            onChange={(e) => {
-                                                setAddFormData({ ...addFormData, email: e.target.value });
-                                                if (addFormErrors.email) setAddFormErrors({ ...addFormErrors, email: '' });
-                                            }}
-                                            placeholder="user@example.com"
-                                            className={`w-full px-4 py-2.5 bg-[#F8F9FC] border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 ${addFormErrors.email ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 focus:ring-[#5A2EFF]'}`}
-                                        />
-                                        {addFormErrors.email && (
-                                            <p className="text-[11px] text-red-500 font-semibold mt-1">{addFormErrors.email}</p>
-                                        )}
-                                    </div>
-                                    <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Password</label>
-                                        <div className="relative">
-                                            <input
-                                                type={showAddPassword ? 'text' : 'password'}
-                                                required
-                                                value={addFormData.password}
-                                                onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
-                                                placeholder="Minimal 8 karakter"
-                                                minLength={8}
-                                                className="w-full px-4 py-2.5 pr-11 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowAddPassword((prev) => !prev)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                                tabIndex={-1}
-                                            >
-                                                {showAddPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Nomor Telepon</label>
-                                        <input type="tel" value={addFormData.phone_number} onChange={(e) => setAddFormData({ ...addFormData, phone_number: e.target.value })} placeholder="08xxxxxxxxxx" className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
-                                    </div>
-                                    <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Role</label>
-                                        <select
-                                            value={addFormData.role}
-                                            onChange={(e) => setAddFormData({ ...addFormData, role: e.target.value })}
-                                            className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]"
-                                        >
-                                            <option value="participant">Participant</option>
-                                            <option value="admin">Admin</option>
-                                        </select>
-                                    </div>
-                                    <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Perusahaan</label>
-                                        <select value={addFormData.company_id} onChange={(e) => setAddFormData({ ...addFormData, company_id: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
-                                            <option value="">Pilih Perusahaan (Opsional)...</option>
-                                            {companies.map((company) => (
-                                                <option key={company.id} value={company.id}>{company.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Departemen</label>
-                                        <select required value={addFormData.department_id} onChange={(e) => setAddFormData({ ...addFormData, department_id: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
-                                            <option value="" disabled>Pilih Departemen...</option>
-                                            {departments.map((dept) => (
-                                                <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="px-6 py-5 border-t border-gray-100 bg-white flex space-x-3">
-                                <button type="button" onClick={closeAddModal} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition-colors">Batal</button>
-                                <button type="submit" disabled={isSubmitting || !addFormData.department_id} className="flex-1 px-4 py-3 rounded-xl bg-[#5A2EFF] text-white font-bold hover:bg-indigo-600 shadow-sm transition-colors disabled:opacity-50">
-                                    {isSubmitting ? 'Menyimpan...' : 'Simpan User'}
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                open={isAddModalOpen}
+                onClose={closeAddModal}
+                title="Tambah User Baru"
+                icon={Plus}
+                size="lg"
+                footer={
+                    <>
+                        <Button variant="secondary" className="flex-1" onClick={closeAddModal} disabled={isSubmitting}>
+                            Batal
+                        </Button>
+                        <Button
+                            type="submit"
+                            form="add-user-form"
+                            variant="primary"
+                            className="flex-1"
+                            loading={isSubmitting}
+                            disabled={!addFormData.department_id}
+                        >
+                            Simpan User
+                        </Button>
+                    </>
+                }
+            >
+                <form id="add-user-form" onSubmit={handleAddSubmit} className="admin-form space-y-4 max-h-[60vh] overflow-y-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField label="Nama Lengkap" required className="col-span-2">
+                            <Input
+                                type="text"
+                                required
+                                value={addFormData.full_name}
+                                onChange={(e) => setAddFormData({ ...addFormData, full_name: e.target.value })}
+                                placeholder="Misal: John Doe"
+                            />
+                        </FormField>
+                        <FormField label="Alamat Email" required error={addFormErrors.email}>
+                            <Input
+                                type="email"
+                                required
+                                value={addFormData.email}
+                                onChange={(e) => {
+                                    setAddFormData({ ...addFormData, email: e.target.value });
+                                    if (addFormErrors.email) setAddFormErrors({ ...addFormErrors, email: '' });
+                                }}
+                                placeholder="user@example.com"
+                                error={!!addFormErrors.email}
+                            />
+                        </FormField>
+                        <FormField label="Password" required>
+                            <Input
+                                type="password"
+                                required
+                                value={addFormData.password}
+                                onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
+                                placeholder="Minimal 8 karakter"
+                                minLength={8}
+                            />
+                        </FormField>
+                        <FormField label="Nomor Telepon" optional>
+                            <Input
+                                type="tel"
+                                value={addFormData.phone_number}
+                                onChange={(e) => setAddFormData({ ...addFormData, phone_number: e.target.value })}
+                                placeholder="08xxxxxxxxxx"
+                            />
+                        </FormField>
+                        <FormField label="Role">
+                            <Select
+                                value={addFormData.role}
+                                onChange={(e) => setAddFormData({ ...addFormData, role: e.target.value })}
+                            >
+                                <option value="participant">Participant</option>
+                                <option value="admin">Admin</option>
+                            </Select>
+                        </FormField>
+                        <FormField label="Perusahaan" optional>
+                            <Select
+                                value={addFormData.company_id}
+                                onChange={(e) => setAddFormData({ ...addFormData, company_id: e.target.value })}
+                            >
+                                <option value="">Pilih Perusahaan (Opsional)...</option>
+                                {companies.map((company) => (
+                                    <option key={company.id} value={company.id}>{company.name}</option>
+                                ))}
+                            </Select>
+                        </FormField>
+                        <FormField label="Departemen" required>
+                            <Select
+                                required
+                                value={addFormData.department_id}
+                                onChange={(e) => setAddFormData({ ...addFormData, department_id: e.target.value })}
+                            >
+                                <option value="" disabled>Pilih Departemen...</option>
+                                {departments.map((dept) => (
+                                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                                ))}
+                            </Select>
+                        </FormField>
                     </div>
-                </div>
-            )}
+                </form>
+            </Modal>
 
-            {/* MODAL IMPORT EXCEL */}
-            {isImportModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-indigo-50/50">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-indigo-100 text-[#5A2EFF] rounded-full flex items-center justify-center">
-                                    <UploadCloud className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-bold text-gray-900">Import User</h2>
-                                    <p className="text-[11px] font-medium text-gray-500">Gunakan file Excel untuk data masal</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsImportModalOpen(false)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        
-                        <form onSubmit={handleImportSubmit} className="p-6 space-y-6">
-                            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5">
-                                <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center">
-                                    <FileSpreadsheet className="w-4 h-4 mr-2 text-blue-600" /> Petunjuk
-                                </h4>
-                                <ul className="text-sm text-blue-800/80 space-y-2 mb-5 list-disc pl-5 font-medium">
-                                    <li>Gunakan template Excel (.xlsx) yang disediakan.</li>
-                                    <li>Pastikan kolom <strong>email</strong>, <strong>full_name</strong>, dan <strong>department_name</strong> tidak kosong.</li>
-                                    <li>Sistem akan men-generate password otomatis jika kolom password dikosongkan.</li>
-                                </ul>
-                                <button 
-                                    type="button" 
-                                    onClick={handleDownloadTemplate} 
-                                    className="w-full flex items-center justify-center px-4 py-2.5 bg-white border border-blue-200 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-50 transition-colors shadow-sm"
-                                >
-                                    <FileDown className="w-4 h-4 mr-2" /> Download Template .xlsx
-                                </button>
-                            </div>
+            <Modal
+                open={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                title="Import User"
+                subtitle="Gunakan file Excel untuk data masal"
+                icon={Upload}
+                size="lg"
+                footer={
+                    <>
+                        <Button variant="secondary" className="flex-1" onClick={() => setIsImportModalOpen(false)}>
+                            Batal
+                        </Button>
+                        <Button
+                            type="submit"
+                            form="import-user-form"
+                            variant="primary"
+                            className="flex-1"
+                            loading={isSubmitting}
+                            disabled={!selectedFile}
+                        >
+                            Upload Data
+                        </Button>
+                    </>
+                }
+            >
+                <form id="import-user-form" onSubmit={handleImportSubmit} className="admin-form space-y-4">
+                    <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5">
+                        <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center">
+                            <FileSpreadsheet className="w-4 h-4 mr-2 text-blue-600" /> Petunjuk
+                        </h4>
+                        <ul className="text-sm text-blue-800/80 space-y-2 mb-5 list-disc pl-5 font-medium">
+                            <li>Gunakan template Excel (.xlsx) yang disediakan.</li>
+                            <li>Pastikan kolom <strong>email</strong>, <strong>full_name</strong>, dan <strong>department_name</strong> tidak kosong.</li>
+                            <li>Sistem akan men-generate password otomatis jika kolom password dikosongkan.</li>
+                        </ul>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            className="w-full"
+                            icon={FileDown}
+                            onClick={handleDownloadTemplate}
+                        >
+                            Download Template .xlsx
+                        </Button>
+                    </div>
 
-                            <div>
-                                <input 
-                                    type="file" 
-                                    accept=".xlsx, .xls" 
-                                    onChange={(e) => setSelectedFile(e.target.files[0])} 
-                                    required 
-                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-[#F8F9FC] file:text-[#5A2EFF] border border-gray-200 rounded-xl cursor-pointer" 
+                    <FormField label="File Excel" required>
+                        <FileUpload
+                            label="Pilih file Excel"
+                            hint="Format: .xlsx atau .xls"
+                            accept=".xlsx, .xls"
+                            required
+                            onChange={(e) => setSelectedFile(e.target.files[0])}
+                        />
+                    </FormField>
+                </form>
+            </Modal>
+
+            <Modal
+                open={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                title="Detail User"
+                subtitle="Informasi lengkap akun"
+                icon={UserIcon}
+                size="lg"
+                footer={
+                    <Button variant="secondary" onClick={() => setIsDetailModalOpen(false)}>
+                        Tutup
+                    </Button>
+                }
+            >
+                {isFetchingDetail ? (
+                    <div className="text-center py-10 font-bold">Mengambil data...</div>
+                ) : detailUser && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className="flex items-center space-x-5 mb-5">
+                                <img
+                                    src={detailUser.profilePhotoUrl || `https://ui-avatars.com/api/?name=${detailUser.fullName}&background=random&size=128`}
+                                    alt="Profile Besar"
+                                    className="w-16 h-16 rounded-full object-cover border-2 border-indigo-50 shadow-sm"
                                 />
-                            </div>
-
-                            <div className="flex space-x-3 pt-2">
-                                <button 
-                                    type="button" 
-                                    onClick={() => setIsImportModalOpen(false)} 
-                                    className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors"
-                                >
-                                    Batal
-                                </button>
-                                <button 
-                                    type="submit" 
-                                    disabled={isSubmitting || !selectedFile} 
-                                    className="flex-1 px-4 py-3 rounded-xl bg-[#5A2EFF] text-white font-bold hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50"
-                                >
-                                    {isSubmitting ? 'Mengunggah...' : 'Upload Data'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* MODAL DETAIL */}
-            {isDetailModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
-                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white/50 backdrop-blur-sm flex-shrink-0">
-                            <div className="flex items-center space-x-4">
-                                {detailUser && detailUser.profilePhotoUrl ? (
-                                    <img src={detailUser.profilePhotoUrl} alt="Avatar Modal Header" className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm" />
-                                ) : (
-                                    <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center">
-                                        <UserIcon className="w-5 h-5 text-[#5A2EFF]" />
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h3 className="font-extrabold text-xl text-gray-900">{detailUser.fullName}</h3>
+                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${detailUser.isActive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>{detailUser.isActive ? 'Active' : 'Inactive'}</span>
                                     </div>
-                                )}
-                                <div>
-                                    <h2 className="text-lg font-extrabold text-gray-900 leading-tight">Detail User</h2>
-                                    <p className="text-[11px] font-medium text-gray-500">Informasi lengkap akun</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsDetailModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-700 rounded-xl transition-all"><X className="w-5 h-5" /></button>
-                        </div>
-                        
-                        <div className="p-8 bg-[#F8F9FC] overflow-y-auto">
-                            {isFetchingDetail ? (
-                                <div className="text-center py-10 font-bold">Mengambil data...</div>
-                            ) : detailUser && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                        <div className="flex items-center space-x-5 mb-5">
-                                            <img 
-                                                src={detailUser.profilePhotoUrl || `https://ui-avatars.com/api/?name=${detailUser.fullName}&background=random&size=128`} 
-                                                alt="Profile Besar" 
-                                                className="w-16 h-16 rounded-full object-cover border-2 border-indigo-50 shadow-sm" 
-                                            />
-                                            <div className="flex-1">
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <h3 className="font-extrabold text-xl text-gray-900">{detailUser.fullName}</h3>
-                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${detailUser.isActive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>{detailUser.isActive ? 'Active' : 'Inactive'}</span>
-                                                </div>
-                                                <div className="flex space-x-4 mt-2">
-                                                    <div>
-                                                        <label className="text-[10px] font-bold text-gray-500 block">ROLE</label>
-                                                        <div className="text-sm font-semibold capitalize text-gray-800">{detailUser.role}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    <div className="flex space-x-4 mt-2">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 block">ROLE</label>
+                                            <div className="text-sm font-semibold capitalize text-gray-800">{detailUser.role}</div>
                                         </div>
                                     </div>
-                                    
-                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                        <h3 className="font-bold flex items-center text-sm mb-4"><Mail className="w-4 h-4 text-[#5A2EFF] mr-2" /> Kontak</h3>
-                                        <label className="text-[10px] font-bold text-gray-500">EMAIL</label>
-                                        <div className="bg-[#F8F9FC] p-2.5 rounded-xl text-sm font-semibold mt-1 mb-3">{detailUser.email}</div>
-                                        <label className="text-[10px] font-bold text-gray-500">PHONE</label>
-                                        <div className="bg-[#F8F9FC] p-2.5 rounded-xl text-sm font-semibold mt-1">{detailUser.phoneNumber || '-'}</div>
-                                    </div>
-
-                                    <div className="rounded-2xl bg-gradient-to-br from-[#7F56D9] to-[#5A2EFF] p-5 text-white shadow-md relative overflow-hidden">
-                                        <div className="relative z-10">
-                                            <h3 className="font-bold flex items-center text-sm mb-5"><TrendingUp className="w-4 h-4 mr-2" /> Engagement</h3>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="bg-white/95 rounded-xl p-3 text-center">
-                                                    <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">Points</p>
-                                                    <p className="text-xl font-black text-[#5A2EFF]">{detailUser.pointsBalance}</p>
-                                                </div>
-                                                <div className="bg-white/95 rounded-xl p-3 text-center">
-                                                    <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">EXP</p>
-                                                    <p className="text-xl font-black text-orange-500">{detailUser.xpBalance}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="absolute -bottom-5 -right-5 opacity-20"><Flame className="w-24 h-24" /></div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        <div className="px-8 py-5 border-t border-gray-100 bg-white flex justify-end flex-shrink-0">
-                            <button onClick={() => setIsDetailModalOpen(false)} className="px-8 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors shadow-sm">
-                                Tutup
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* MODAL EDIT */}
-            {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-[440px] flex flex-col overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                            <h2 className="text-lg font-bold text-gray-900">Edit User</h2>
-                            <button onClick={() => setIsEditModalOpen(false)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-                        </div>
-                        <form onSubmit={handleEditSubmit}>
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Nama User / Username</label>
-                                    <input type="text" required value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
-                                </div>
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Phone Number</label>
-                                    <input type="tel" value={formData.phone_number} onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]" />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Perusahaan</label>
-                                    <select value={formData.company_id} onChange={(e) => setFormData({ ...formData, company_id: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
-                                        <option value="">Pilih Perusahaan (Opsional)...</option>
-                                        {companies.map((company) => (
-                                            <option key={company.id} value={company.id}>{company.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Departemen</label>
-                                    <select required value={formData.department_id} onChange={(e) => setFormData({ ...formData, department_id: e.target.value })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
-                                        <option value="" disabled>Pilih Departemen...</option>
-                                        {departments.map((dept) => (
-                                            <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Role</label>
-                                    <select
-                                        value={formData.role}
-                                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                        className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]"
-                                    >
-                                        <option value="participant">Participant</option>
-                                        <option value="admin">Admin</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase">Status</label>
-                                    <select value={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })} className="w-full px-4 py-2.5 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]">
-                                        <option value="true">Active</option>
-                                        <option value="false">Inactive</option>
-                                    </select>
                                 </div>
                             </div>
-                            <div className="px-6 py-5 border-t border-gray-100 bg-white flex space-x-3">
-                                <button type="button" onClick={() => setIsEditModalOpen(false)} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition-colors">Batal</button>
-                                <button type="submit" disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl bg-[#5A2EFF] text-white font-bold hover:bg-indigo-700 shadow-sm transition-colors">{isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                        </div>
 
-            {/* MODAL HAPUS */}
-            {isDeleteModalOpen && userToDelete && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5">
-                            <AlertTriangle className="w-8 h-8" />
+                        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                            <h3 className="font-bold flex items-center text-sm mb-4"><Mail className="w-4 h-4 text-[#5A2EFF] mr-2" /> Kontak</h3>
+                            <label className="text-[10px] font-bold text-gray-500">EMAIL</label>
+                            <div className="bg-[#F8F9FC] p-2.5 rounded-xl text-sm font-semibold mt-1 mb-3">{detailUser.email}</div>
+                            <label className="text-[10px] font-bold text-gray-500">PHONE</label>
+                            <div className="bg-[#F8F9FC] p-2.5 rounded-xl text-sm font-semibold mt-1">{detailUser.phoneNumber || '-'}</div>
                         </div>
-                        <h3 className="text-xl font-extrabold text-gray-900 mb-2">Hapus User?</h3>
-                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                            Anda akan menghapus user <strong className="text-gray-700">"{userToDelete?.fullName}"</strong>. Semua histori poin dan aktivitasnya akan ikut terhapus secara permanen.
-                        </p>
-                        <div className="flex space-x-3">
-                            <button
-                                onClick={() => { setIsDeleteModalOpen(false); setUserToDelete(null); }}
-                                disabled={isSubmitting}
-                                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 disabled:opacity-50"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                onClick={executeDelete}
-                                disabled={isSubmitting}
-                                className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-sm transition-colors disabled:opacity-50"
-                            >
-                                {isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}
-                            </button>
+
+                        <div className="rounded-2xl bg-gradient-to-br from-[#7F56D9] to-[#5A2EFF] p-5 text-white shadow-md relative overflow-hidden">
+                            <div className="relative z-10">
+                                <h3 className="font-bold flex items-center text-sm mb-5"><TrendingUp className="w-4 h-4 mr-2" /> Engagement</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-white/95 rounded-xl p-3 text-center">
+                                        <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">Points</p>
+                                        <p className="text-xl font-black text-[#5A2EFF]">{detailUser.pointsBalance}</p>
+                                    </div>
+                                    <div className="bg-white/95 rounded-xl p-3 text-center">
+                                        <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">EXP</p>
+                                        <p className="text-xl font-black text-orange-500">{detailUser.xpBalance}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="absolute -bottom-5 -right-5 opacity-20"><Flame className="w-24 h-24" /></div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
+
+            <Modal
+                open={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                title="Edit User"
+                icon={Edit}
+                size="md"
+                footer={
+                    <>
+                        <Button variant="secondary" className="flex-1" onClick={() => setIsEditModalOpen(false)} disabled={isSubmitting}>
+                            Batal
+                        </Button>
+                        <Button type="submit" form="edit-user-form" variant="primary" className="flex-1" loading={isSubmitting}>
+                            Simpan Perubahan
+                        </Button>
+                    </>
+                }
+            >
+                <form id="edit-user-form" onSubmit={handleEditSubmit} className="admin-form space-y-4">
+                    <FormField label="Nama User / Username" required>
+                        <Input
+                            type="text"
+                            required
+                            value={formData.full_name}
+                            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        />
+                    </FormField>
+                    <FormField label="Phone Number">
+                        <Input
+                            type="tel"
+                            value={formData.phone_number}
+                            onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                        />
+                    </FormField>
+                    <FormField label="Perusahaan" optional>
+                        <Select
+                            value={formData.company_id}
+                            onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
+                        >
+                            <option value="">Pilih Perusahaan (Opsional)...</option>
+                            {companies.map((company) => (
+                                <option key={company.id} value={company.id}>{company.name}</option>
+                            ))}
+                        </Select>
+                    </FormField>
+                    <FormField label="Departemen" required>
+                        <Select
+                            required
+                            value={formData.department_id}
+                            onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+                        >
+                            <option value="" disabled>Pilih Departemen...</option>
+                            {departments.map((dept) => (
+                                <option key={dept.id} value={dept.id}>{dept.name}</option>
+                            ))}
+                        </Select>
+                    </FormField>
+                    <FormField label="Role">
+                        <Select
+                            value={formData.role}
+                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        >
+                            <option value="participant">Participant</option>
+                            <option value="admin">Admin</option>
+                        </Select>
+                    </FormField>
+                    <FormField label="Status">
+                        <Select
+                            value={formData.is_active}
+                            onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
+                        >
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </Select>
+                    </FormField>
+                </form>
+            </Modal>
+
+            <ConfirmModal
+                open={isDeleteModalOpen && !!userToDelete}
+                onClose={() => { setIsDeleteModalOpen(false); setUserToDelete(null); }}
+                onConfirm={executeDelete}
+                title="Hapus User?"
+                description={`Anda akan menghapus user "${userToDelete?.fullName}". Semua histori poin dan aktivitasnya akan ikut terhapus secara permanen.`}
+                confirmLabel="Ya, Hapus"
+                loading={isSubmitting}
+            />
 
         </div>
     );

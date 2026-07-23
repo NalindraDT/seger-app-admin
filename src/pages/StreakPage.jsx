@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-    Flame, Plus, Edit, Trash2, X, CheckCircle2,
-    Target, Star, Award, ChevronDown, Info, AlertTriangle, ShieldCheck
+    Flame, Plus, Edit, Trash2, Target, Star, Award, Info, ShieldCheck
 } from 'lucide-react';
+import {
+    FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal
+} from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
 export default function StreakPage() {
@@ -186,32 +188,23 @@ export default function StreakPage() {
 
     return (
         <div className="space-y-6 relative">
-            {/* TOAST */}
-            {toastMessage && (
-                <div className="fixed top-8 right-8 z-[100] animate-in slide-in-from-right-8 fade-in duration-300">
-                    <div className="bg-white border border-green-100 shadow-xl rounded-xl p-4 flex items-center space-x-3 pr-6">
-                        <div className="bg-green-100 p-1.5 rounded-full"><CheckCircle2 className="w-5 h-5 text-[#10B981]" /></div>
-                        <div><p className="text-sm font-extrabold text-gray-900">Sistem</p><p className="text-xs font-medium text-gray-500">{toastMessage}</p></div>
-                    </div>
-                </div>
-            )}
+            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
 
-            {/* HEADER */}
-            <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Aturan Streak</h1>
-                <p className="text-sm text-gray-500 mt-1">Atur hadiah EXP dan Badge saat user mencapai target hari berturut-turut</p>
-            </div>
+            <PageHeader
+                title="Aturan Streak"
+                subtitle="Atur hadiah EXP dan Badge saat user mencapai target hari berturut-turut"
+                actions={
+                    <Button icon={Plus} onClick={openAddModal}>
+                        Tambah Aturan
+                    </Button>
+                }
+            />
 
-            {/* TOOLBAR */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center space-x-2 text-sm font-bold text-gray-600 bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm">
                     <Flame className="w-4 h-4 text-orange-500" />
                     <span>Total: {rules.length} Aturan</span>
                 </div>
-
-                <button onClick={openAddModal} className="flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-sm transition-colors">
-                    <Plus className="w-4 h-4 mr-2" /> Tambah Aturan
-                </button>
             </div>
 
             {/* TABLE */}
@@ -274,169 +267,89 @@ export default function StreakPage() {
                 </div>
             </div>
 
-            {/* ========================================= */}
-            {/* MODAL FORM (REUSABLE TAMBAH & EDIT)       */}
-            {/* ========================================= */}
-            {(isAddModalOpen || isEditModalOpen) && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col my-auto border border-gray-100 overflow-hidden">
-
-                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center border border-orange-200">
-                                    <Flame className="w-5 h-5 text-orange-500" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-extrabold text-gray-900">{isAddModalOpen ? 'Tambah Aturan Streak' : 'Edit Aturan Streak'}</h2>
-                                    <p className="text-[11px] font-medium text-gray-500">Tentukan bonus saat pencapaian hari</p>
-                                </div>
-                            </div>
-                            <button onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} className="p-2 text-gray-400 hover:bg-gray-200 rounded-xl transition-all">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={(e) => handleSubmit(e, isAddModalOpen ? 'add' : 'edit')}>
-                            <div className="p-8 space-y-6 bg-white">
-
-                                <div className="grid grid-cols-2 gap-5">
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Target Hari (Streak)</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Target className="w-4 h-4 text-gray-400" /></div>
-                                            <input
-                                                type="number" min="1" required placeholder="Misal: 7"
-                                                value={formData.milestone_days} onChange={(e) => setFormData({ ...formData, milestone_days: e.target.value })}
-                                                className="w-full pl-10 pr-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Hadiah EXP</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Star className="w-4 h-4 text-gray-400" /></div>
-                                            <input
-                                                type="number" min="0" required placeholder="Misal: 10"
-                                                value={formData.xp_reward} onChange={(e) => setFormData({ ...formData, xp_reward: e.target.value })}
-                                                className="w-full pl-10 pr-4 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Pilih Badge Spesial (Opsional)</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Award className="w-4 h-4 text-[#5A2EFF]" /></div>
-                                        <select
-                                            value={formData.badge_id}
-                                            onChange={(e) => setFormData({ ...formData, badge_id: e.target.value })}
-                                            className="w-full pl-10 pr-10 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 appearance-none focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all"
-                                        >
-                                            <option value="">-- Tidak Memberikan Badge --</option>
-                                            {badges.map(badge => (
-                                                <option key={badge.id} value={badge.id}>
-                                                    {badge.name} (Tier {badge.tier})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><ChevronDown className="w-4 h-4 text-gray-500" /></div>
-                                    </div>
-                                    <p className="text-[10px] text-gray-500 mt-1.5">Hanya menampilkan badge yang dikonfigurasi "Use in Streak".</p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Status Aturan</label>
-                                    <div className="relative">
-                                        <select
-                                            value={formData.is_active}
-                                            onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
-                                            className="w-full pl-4 pr-10 py-3 bg-[#F8F9FC] border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 appearance-none focus:outline-none focus:ring-2 focus:ring-[#5A2EFF] transition-all"
-                                        >
-                                            <option value="true">Active (Berlaku)</option>
-                                            <option value="false">Inactive (Dimatikan)</option>
-                                        </select>
-                                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><ChevronDown className="w-4 h-4 text-gray-500" /></div>
-                                    </div>
-                                </div>
-
-                            </div>
-                            <div className="px-8 py-5 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3">
-                                <button type="button" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} className="px-6 py-2.5 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-white transition-colors">Batal</button>
-                                <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-bold shadow-sm hover:bg-indigo-700 transition-colors flex items-center">
-                                    {isSubmitting ? 'Menyimpan...' : 'Simpan Aturan'}
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                open={isAddModalOpen || isEditModalOpen}
+                onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}
+                title={isAddModalOpen ? 'Tambah Aturan Streak' : 'Edit Aturan Streak'}
+                subtitle="Tentukan bonus saat pencapaian hari"
+                icon={Flame}
+                size="md"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}>
+                            Batal
+                        </Button>
+                        <Button type="submit" form="streak-form" variant="primary" loading={isSubmitting}>
+                            Simpan Aturan
+                        </Button>
+                    </>
+                }
+            >
+                <form id="streak-form" onSubmit={(e) => handleSubmit(e, isAddModalOpen ? 'add' : 'edit')} className="admin-form space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Target Hari (Streak)" required>
+                            <Input icon={Target} type="number" min="1" required placeholder="Misal: 7" value={formData.milestone_days} onChange={(e) => setFormData({ ...formData, milestone_days: e.target.value })} />
+                        </FormField>
+                        <FormField label="Hadiah EXP" required>
+                            <Input icon={Star} type="number" min="0" required placeholder="Misal: 10" value={formData.xp_reward} onChange={(e) => setFormData({ ...formData, xp_reward: e.target.value })} />
+                        </FormField>
                     </div>
-                </div>
-            )}
 
-            {/* ========================================= */}
-            {/* MODAL DETAIL (VIEW ONLY)                  */}
-            {/* ========================================= */}
-            {isDetailModalOpen && selectedRule && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100 text-center pb-6">
+                    <FormField label="Pilih Badge Spesial" optional hint='Hanya menampilkan badge yang dikonfigurasi "Use in Streak".'>
+                        <Select value={formData.badge_id} onChange={(e) => setFormData({ ...formData, badge_id: e.target.value })}>
+                            <option value="">-- Tidak Memberikan Badge --</option>
+                            {badges.map(badge => (
+                                <option key={badge.id} value={badge.id}>{badge.name} (Tier {badge.tier})</option>
+                            ))}
+                        </Select>
+                    </FormField>
 
-                        <div className="px-6 py-4 flex justify-end">
-                            <button onClick={() => setIsDetailModalOpen(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-all">
-                                <X className="w-5 h-5" />
-                            </button>
+                    <FormField label="Status Aturan">
+                        <Select value={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}>
+                            <option value="true">Active (Berlaku)</option>
+                            <option value="false">Inactive (Dimatikan)</option>
+                        </Select>
+                    </FormField>
+                </form>
+            </Modal>
+
+            <Modal
+                open={isDetailModalOpen && !!selectedRule}
+                onClose={() => setIsDetailModalOpen(false)}
+                title={`Streak ${selectedRule?.milestone_days} Hari`}
+                icon={Flame}
+                size="sm"
+            >
+                <div className="flex flex-col items-center text-center space-y-4">
+                    <span className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase ${selectedRule?.is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                        {selectedRule?.is_active ? 'Status Aktif' : 'Status Non-Aktif'}
+                    </span>
+                    <div className="w-full space-y-3">
+                        <div className="bg-[#F8F9FC] border border-gray-100 rounded-2xl p-4 flex justify-between items-center">
+                            <span className="text-xs font-bold text-gray-500 uppercase flex items-center"><Star className="w-4 h-4 mr-2 text-orange-400" /> Hadiah EXP</span>
+                            <span className="text-lg font-black text-orange-500">+{selectedRule?.xp_reward}</span>
                         </div>
-
-                        <div className="px-8 flex flex-col items-center">
-                            <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center border border-orange-100 mb-4 shadow-inner">
-                                <Flame className="w-10 h-10 text-orange-500" />
-                            </div>
-
-                            <h2 className="text-2xl font-black text-gray-900 tracking-tight">Streak {selectedRule.milestone_days} Hari</h2>
-                            <span className={`mt-2 mb-6 px-3 py-1 rounded-md text-[10px] font-extrabold uppercase ${selectedRule.is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                                {selectedRule.is_active ? 'Status Aktif' : 'Status Non-Aktif'}
-                            </span>
-
-                            <div className="w-full space-y-3">
-                                <div className="bg-[#F8F9FC] border border-gray-100 rounded-2xl p-4 flex justify-between items-center">
-                                    <span className="text-xs font-bold text-gray-500 uppercase flex items-center"><Star className="w-4 h-4 mr-2 text-orange-400" /> Hadiah EXP</span>
-                                    <span className="text-lg font-black text-orange-500">+{selectedRule.xp_reward}</span>
-                                </div>
-
-                                <div className="bg-[#F8F9FC] border border-gray-100 rounded-2xl p-4 flex justify-between items-center">
-                                    <span className="text-xs font-bold text-gray-500 uppercase flex items-center"><ShieldCheck className="w-4 h-4 mr-2 text-[#5A2EFF]" /> Badge</span>
-                                    {selectedRule.badge_id ? (
-                                        <span className="text-sm font-bold text-[#5A2EFF] bg-indigo-50 px-3 py-1 rounded-md">{getBadgeName(selectedRule.badge_id)}</span>
-                                    ) : (
-                                        <span className="text-sm font-bold text-gray-400">Tidak ada</span>
-                                    )}
-                                </div>
-                            </div>
+                        <div className="bg-[#F8F9FC] border border-gray-100 rounded-2xl p-4 flex justify-between items-center">
+                            <span className="text-xs font-bold text-gray-500 uppercase flex items-center"><ShieldCheck className="w-4 h-4 mr-2 text-[#5A2EFF]" /> Badge</span>
+                            {selectedRule?.badge_id ? (
+                                <span className="text-sm font-bold text-[#5A2EFF] bg-indigo-50 px-3 py-1 rounded-md">{getBadgeName(selectedRule.badge_id)}</span>
+                            ) : (
+                                <span className="text-sm font-bold text-gray-400">Tidak ada</span>
+                            )}
                         </div>
                     </div>
                 </div>
-            )}
+            </Modal>
 
-            {/* ========================================= */}
-            {/* MODAL HAPUS (VERIFIKASI)                  */}
-            {/* ========================================= */}
-            {isDeleteModalOpen && selectedRule && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5">
-                            <AlertTriangle className="w-8 h-8" />
-                        </div>
-                        <h3 className="text-xl font-extrabold text-gray-900 mb-2">Hapus Aturan Streak?</h3>
-                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                            Anda akan menghapus aturan untuk streak <strong className="text-orange-500">{selectedRule.milestone_days} Hari</strong>. Pengguna tidak akan mendapatkan bonus ini lagi.
-                        </p>
-                        <div className="flex space-x-3">
-                            <button onClick={() => { setIsDeleteModalOpen(false); setSelectedRule(null); }} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 disabled:opacity-50">Batal</button>
-                            <button onClick={handleDelete} disabled={isSubmitting} className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-sm transition-colors disabled:opacity-50">
-                                {isSubmitting ? 'Memproses...' : 'Ya, Hapus'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                open={isDeleteModalOpen && !!selectedRule}
+                onClose={() => { setIsDeleteModalOpen(false); setSelectedRule(null); }}
+                onConfirm={handleDelete}
+                title="Hapus Aturan Streak?"
+                description={`Anda akan menghapus aturan untuk streak ${selectedRule?.milestone_days} Hari. Pengguna tidak akan mendapatkan bonus ini lagi.`}
+                confirmLabel="Ya, Hapus"
+                loading={isSubmitting}
+            />
 
         </div>
     );

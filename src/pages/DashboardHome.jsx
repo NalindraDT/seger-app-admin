@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // <-- IMPORT BARU DI SINI
+import { useNavigate } from 'react-router-dom';
 import { Users, ClipboardCheck, CheckCircle, Gift } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PageHeader, Button } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
 export default function DashboardHome() {
@@ -54,11 +55,10 @@ export default function DashboardHome() {
 
     return (
         <div className="space-y-6">
-            {/* HEADER TITLE */}
-            <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Ringkasan Statistik</h1>
-                <p className="text-sm text-gray-500 mt-1">Data performa komunitas dalam 7 hari terakhir</p>
-            </div>
+            <PageHeader
+                title="Ringkasan Statistik"
+                subtitle="Data performa komunitas dalam 7 hari terakhir"
+            />
 
             {/* 4 KARTU STATISTIK ATAS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -166,20 +166,12 @@ export default function DashboardHome() {
                         Pantau perkembangan setiap anggota dan berikan apresiasi yang sesuai untuk meningkatkan motivasi berolahraga.
                     </p>
                     <div className="flex space-x-4">
-                        {/* TOMBOL ATUR REWARD (Navigate ke /hadiah) */}
-                        <button
-                            onClick={() => navigate('/hadiah')}
-                            className="px-6 py-2.5 bg-[#5A2EFF] text-white text-sm font-bold rounded-lg shadow-sm hover:bg-indigo-700 transition-colors"
-                        >
+                        <Button onClick={() => navigate('/hadiah')}>
                             Atur Reward
-                        </button>
-                        {/* TOMBOL LIHAT MEMBER (Navigate ke /users) */}
-                        <button
-                            onClick={() => navigate('/users')}
-                            className="px-6 py-2.5 bg-white text-gray-700 border border-gray-200 text-sm font-bold rounded-lg hover:bg-gray-50 transition-colors"
-                        >
+                        </Button>
+                        <Button variant="secondary" onClick={() => navigate('/users')}>
                             Lihat Member
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
