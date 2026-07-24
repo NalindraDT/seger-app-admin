@@ -9,26 +9,25 @@ import { getBaseUrl } from '../utils/apiConfig';
 
 export default function DashboardLayout() {
     const navigate = useNavigate();
-    const location = useLocation(); // Untuk mendeteksi path aktif saat ini
+    const location = useLocation();
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     
-    // STATE UNTUK PROFIL ADMIN
     const [adminName, setAdminName] = useState('Administrator');
     const [profilePhoto, setProfilePhoto] = useState(null);
-
     const [isSessionExpired, setIsSessionExpired] = useState(false);
 
-    // STATE BARU: Untuk mengatur dropdown mana yang terbuka
     const [openMenus, setOpenMenus] = useState({
         'Gamifikasi': false,
         'Pengaturan': false
     });
 
-    // PENGELOMPOKAN MENU DENGAN DROPDOWN
+    // STATE BARU: Untuk menyimpan jumlah pending submissions
+    const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
+
     const navigation = [
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-        { name: 'Submissions', path: '/submissions', icon: ClipboardList },
+        { name: 'Submissions', path: '/submissions', icon: ClipboardList, badge: pendingSubmissionsCount }, // Tambahkan properti badge
         { name: 'Users', path: '/users', icon: Users },
         { name: 'Perusahaan', path: '/companies', icon: Landmark },
         { name: 'Departemen', path: '/departments', icon: Building2 },
@@ -40,7 +39,7 @@ export default function DashboardLayout() {
                 { name: 'Badges', path: '/badges', icon: Medal },
                 { name: 'Streak', path: '/streak', icon: Flame },
                 { name: 'Events', path: '/events', icon: CalendarDays },
-                { name: 'Hadiah', path: '/hadiah', icon: Gift },
+                { name: 'Hadiah', path: '/hadiah', icon: Gift }, // Kamu bisa menambahkan badge di sini juga nanti jika perlu
             ]
         },
         {
@@ -74,7 +73,6 @@ export default function DashboardLayout() {
         }
     };
 
-    // FETCH DATA PROFIL ADMIN UNTUK HEADER
     const fetchAdminProfile = async () => {
         try {
             const token = localStorage.getItem('jwt_token');
@@ -94,12 +92,33 @@ export default function DashboardLayout() {
         }
     };
 
+    // FUNGSI BARU: Ambil data summary untuk mendapatkan total pending
+    const fetchDashboardSummary = async () => {
+        try {
+            const token = localStorage.getItem('jwt_token');
+            if (!token) return;
+
+            const response = await fetch(`${getBaseUrl()}/admin/dashboard?range=7d`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const json = await response.json();
+
+            if (json.status === 'success') {
+                // Set value dari API ke state
+                setPendingSubmissionsCount(json.data.summary.pending_submissions.value || 0);
+            }
+        } catch (error) {
+            console.error("Gagal mengambil summary dashboard untuk sidebar");
+        }
+    };
+
     useEffect(() => {
         const storedName = localStorage.getItem('admin_name');
         if (storedName) setAdminName(storedName);
         
         checkTokenValidity();
-        fetchAdminProfile(); // Panggil fetch profil saat layout dimuat
+        fetchAdminProfile();
+        fetchDashboardSummary(); // Panggil fungsi saat layout dimuat
 
         const intervalId = setInterval(checkTokenValidity, 60000);
         window.addEventListener('focus', checkTokenValidity);
@@ -109,7 +128,6 @@ export default function DashboardLayout() {
         };
     }, []);
 
-    // EFFECT BARU: Buka dropdown secara otomatis jika path URL ada di dalam dropdown tersebut
     useEffect(() => {
         navigation.forEach(menu => {
             if (menu.subMenus) {
@@ -121,7 +139,6 @@ export default function DashboardLayout() {
         });
     }, [location.pathname]);
 
-    // FUNGSI TOGGLE DROPDOWN
     const toggleMenu = (menuName) => {
         setOpenMenus(prev => ({ ...prev, [menuName]: !prev[menuName] }));
     };
@@ -151,7 +168,6 @@ export default function DashboardLayout() {
 
     return (
         <div className="flex h-screen bg-[#F8F9FD] font-sans">
-
             {/* SIDEBAR KIRI */}
             <div className="w-64 bg-[#F8F9FD] border-r border-gray-200 flex flex-col justify-between overflow-y-auto custom-scrollbar">
                 <div>
@@ -162,13 +178,11 @@ export default function DashboardLayout() {
                     <nav className="mt-2 px-4 space-y-2 pb-6">
                         {navigation.map((menu) => (
                             <div key={menu.name}>
-                                {/* JIKA MENU PUNYA SUB-MENU (DROPDOWN) */}
                                 {menu.subMenus ? (
                                     <div className="space-y-1">
                                         <button
                                             onClick={() => toggleMenu(menu.name)}
                                             className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                                                // Beri warna latar berbeda jika ada sub-menu yang sedang aktif
                                                 menu.subMenus.some(sub => location.pathname.startsWith(sub.path))
                                                     ? 'bg-indigo-50/50 text-[#5A2EFF]' 
                                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -181,7 +195,6 @@ export default function DashboardLayout() {
                                             <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${openMenus[menu.name] ? 'rotate-180 text-[#5A2EFF]' : 'text-gray-400'}`} />
                                         </button>
                                         
-                                        {/* DAFTAR SUB-MENU */}
                                         <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openMenus[menu.name] ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                             {menu.subMenus.map((sub) => (
                                                 <NavLink
@@ -193,13 +206,19 @@ export default function DashboardLayout() {
                                                     }
                                                 >
                                                     <sub.icon className="w-4 h-4 mr-3 opacity-60" />
-                                                    {sub.name}
+                                                    <span className="flex-1">{sub.name}</span>
+                                                    
+                                                    {/* Tambahkan ini jika submenu (seperti Hadiah) butuh badge */}
+                                                    {sub.badge && sub.badge > 0 && (
+                                                        <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ml-2">
+                                                            {sub.badge}
+                                                        </span>
+                                                    )}
                                                 </NavLink>
                                             ))}
                                         </div>
                                     </div>
                                 ) : (
-                                    /* JIKA MENU BIASA (TANPA DROPDOWN) */
                                     <NavLink
                                         to={menu.path}
                                         className={({ isActive }) =>
@@ -209,7 +228,15 @@ export default function DashboardLayout() {
                                         }
                                     >
                                         <menu.icon className="w-5 h-5 mr-3" />
-                                        {menu.name}
+                                        {/* Modifikasi bagian teks menu agar memenuhi sisa ruang (flex-1) */}
+                                        <span className="flex-1">{menu.name}</span>
+                                        
+                                        {/* TAMPILKAN BADGE JIKA ADA */}
+                                        {menu.badge > 0 && (
+                                            <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 transition-all">
+                                                {menu.badge > 99 ? '99+' : menu.badge}
+                                            </span>
+                                        )}
                                     </NavLink>
                                 )}
                             </div>
@@ -231,11 +258,6 @@ export default function DashboardLayout() {
             <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-tl-3xl shadow-[inset_0_4px_6px_rgba(0,0,0,0.02)]">
                 <header className="h-[72px] flex items-center justify-end px-8 border-b border-gray-100">
                     <div className="flex items-center space-x-6">
-                        {/* <button className="text-gray-400 hover:text-[#5A2EFF] transition-colors relative">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                        </button> */}
-                        
                         <div className="border-l border-gray-200 pl-6">
                             <Link 
                                 to="/profile" 
