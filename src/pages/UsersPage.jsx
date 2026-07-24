@@ -35,6 +35,7 @@ export default function UsersPage() {
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
 
     // STATE UNTUK MODAL HAPUS
@@ -288,6 +289,41 @@ export default function UsersPage() {
         XLSX.writeFile(wb, "template_import_user.xlsx");
     };
 
+    const handleExportUsers = async () => {
+        setIsExporting(true);
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const response = await fetch(`${getBaseUrl()}/admin/users/export`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                const errorJson = await response.json().catch(() => null);
+                throw new Error(errorJson?.error?.message || errorJson?.message || 'Gagal export data user.');
+            }
+
+            const blob = await response.blob();
+            const contentDisposition = response.headers.get('Content-Disposition') || '';
+            const fileNameMatch = contentDisposition.match(/filename="([^"]+)"/);
+            const fileName = fileNameMatch?.[1] || `users-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            showToast('Data user berhasil diekspor!');
+        } catch (error) {
+            alert(error.message || 'Terjadi kesalahan saat export data user.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const handleImportSubmit = async (e) => {
         e.preventDefault();
         if (!selectedFile) return;
@@ -423,6 +459,14 @@ export default function UsersPage() {
                     </button>
                     <button onClick={() => setIsImportModalOpen(true)} className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-white border border-[#5A2EFF] text-[#5A2EFF] rounded-xl text-sm font-bold hover:bg-indigo-50 shadow-sm transition-colors">
                         <Upload className="w-4 h-4 mr-2" /> Import
+                    </button>
+                    <button
+                        onClick={handleExportUsers}
+                        disabled={isExporting}
+                        className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 shadow-sm transition-colors disabled:opacity-60"
+                    >
+                        <FileDown className="w-4 h-4 mr-2" />
+                        {isExporting ? 'Export...' : 'Export'}
                     </button>
                 </div>
             </div>
