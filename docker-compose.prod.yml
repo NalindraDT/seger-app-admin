@@ -1,0 +1,14 @@
+services:
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3001/api/v1}
+    container_name: seger-admin-web
+    expose:
+      - '${PORT:-3000}'
+    environment:
+      PORT: ${PORT:-3000}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:3001/api/v1}
+    restart: unless-stopped
