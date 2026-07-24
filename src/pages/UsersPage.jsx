@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import {
     Users, Upload, Edit, Eye, ChevronLeft, ChevronRight,
-    FileDown, FileSpreadsheet, User as UserIcon, Mail, TrendingUp, Flame, Trash2, Plus
+    FileDown, FileSpreadsheet, User as UserIcon, Mail, TrendingUp, Flame, Trash2, Plus, Activity
 } from 'lucide-react';
 import {
     FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar
@@ -47,6 +47,10 @@ export default function UsersPage() {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isFetchingDetail, setIsFetchingDetail] = useState(false);
     const [detailUser, setDetailUser] = useState(null);
+    const [detailActivities, setDetailActivities] = useState([]);
+    const [detailActivitiesPage, setDetailActivitiesPage] = useState(1);
+    const [detailActivitiesTotalPages, setDetailActivitiesTotalPages] = useState(1);
+    const [selectedActivityDetail, setSelectedActivityDetail] = useState(null);
 
     const fetchUsers = async () => {
         setIsLoading(true);
@@ -194,14 +198,33 @@ export default function UsersPage() {
     const openDetailModal = async (userId) => {
         setIsDetailModalOpen(true);
         setIsFetchingDetail(true);
+        setDetailActivities([]);
+        setDetailActivitiesPage(1);
+        setSelectedActivityDetail(null);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/users/${userId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const json = await response.json();
-            if (json.success) {
-                setDetailUser(json.data);
+            const [profileRes, activitiesRes] = await Promise.all([
+                fetch(`${getBaseUrl()}/admin/users/${userId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch(`${getBaseUrl()}/admin/users/${userId}/activities?page=1&limit=10`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }),
+            ]);
+            const profileJson = await profileRes.json();
+            const activitiesJson = await activitiesRes.json();
+
+            if (profileJson.success) {
+                setDetailUser(profileJson.data);
+            }
+            if (activitiesJson.success) {
+                const payload = activitiesJson.data;
+                const annual = payload.activity_items ?? [];
+                const event = payload.event_items ?? [];
+                const merged = [...annual, ...event].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+                setDetailActivities(merged.length > 0 ? merged : (payload.items ?? []));
+                setDetailActivitiesPage(payload.pagination?.page ?? 1);
+                setDetailActivitiesTotalPages(payload.pagination?.totalPages ?? 1);
             }
         } catch (error) {
             alert("Kesalahan jaringan saat mengambil detail.");
@@ -211,11 +234,30 @@ export default function UsersPage() {
         }
     };
 
+    const fetchDetailActivities = async (userId, page = 1) => {
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const response = await fetch(`${getBaseUrl()}/admin/users/${userId}/activities?page=${page}&limit=10`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const json = await response.json();
+            if (json.success) {
+                const payload = json.data;
+                const annual = payload.activity_items ?? [];
+                const event = payload.event_items ?? [];
+                const merged = [...annual, ...event].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+                setDetailActivities(merged.length > 0 ? merged : (payload.items ?? []));
+                setDetailActivitiesPage(payload.pagination?.page ?? page);
+                setDetailActivitiesTotalPages(payload.pagination?.totalPages ?? 1);
+            }
+        } catch (error) {
+            console.error('Gagal memuat riwayat aktivitas peserta', error);
+        }
+    };
+
     const handleDownloadTemplate = () => {
-        // 1. Ubah department_id menjadi department_name
-        const header = ["email", "full_name", "password", "department_name"];
-        // 2. Beri contoh isi dengan nama departemen yang valid
-        const rowData = ["user@example.com", "User Demo", "userpltu123", "Plant Operations"];
+        const header = ["email", "full_name", "password", "company_name", "department_name"];
+        const rowData = ["user@example.com", "User Demo", "userpltu123", "PLN Indonesia Power", "Plant Operations"];
 
         const ws = XLSX.utils.aoa_to_sheet([header, rowData]);
 
@@ -238,7 +280,7 @@ export default function UsersPage() {
             ws[address].s = headerStyle;
         }
 
-        ws['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 35 }];
+        ws['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 28 }, { wch: 35 }];
         ws['!rows'] = [{ hpt: 25 }];
 
         const wb = XLSX.utils.book_new();
@@ -612,6 +654,7 @@ export default function UsersPage() {
                         </h4>
                         <ul className="text-sm text-blue-800/80 space-y-2 mb-5 list-disc pl-5 font-medium">
                             <li>Gunakan template Excel (.xlsx) yang disediakan.</li>
+                            <li>Kolom wajib: email, full_name. Kolom opsional: password, company_name, department_name.</li>
                             <li>Pastikan kolom <strong>email</strong>, <strong>full_name</strong>, dan <strong>department_name</strong> tidak kosong.</li>
                             <li>Sistem akan men-generate password otomatis jika kolom password dikosongkan.</li>
                         </ul>
@@ -701,6 +744,132 @@ export default function UsersPage() {
                             </div>
                             <div className="absolute -bottom-5 -right-5 opacity-20"><Flame className="w-24 h-24" /></div>
                         </div>
+
+                        <div className="col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                            <h3 className="font-bold text-sm mb-4 flex items-center">
+                                <Activity className="w-4 h-4 text-[#5A2EFF] mr-2" />
+                                Riwayat Aktivitas
+                            </h3>
+                            {detailActivities.length === 0 ? (
+                                <p className="text-sm text-gray-500 text-center py-6">Belum ada aktivitas.</p>
+                            ) : (
+                                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                                    {detailActivities.map((activity) => {
+                                        const status = (activity.status ?? 'UNKNOWN').toUpperCase();
+                                        const isEvent = (activity.submission_scope ?? '').toUpperCase() === 'EVENT';
+                                        return (
+                                            <button
+                                                key={activity.id}
+                                                type="button"
+                                                onClick={() => setSelectedActivityDetail(activity)}
+                                                className="w-full text-left p-4 rounded-xl border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors"
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <p className="font-bold text-gray-800">{activity.type}</p>
+                                                        {isEvent && activity.event_name && (
+                                                            <p className="text-[11px] font-semibold text-[#5A2EFF] mt-1">
+                                                                Event: {activity.event_name}
+                                                            </p>
+                                                        )}
+                                                        <p className="text-xs text-gray-500 mt-1">
+                                                            {activity.date} · {activity.distance_km} km · {activity.duration_minutes} mnt
+                                                        </p>
+                                                    </div>
+                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${
+                                                        status === 'APPROVED'
+                                                            ? 'bg-green-50 text-green-600'
+                                                            : status === 'REJECTED'
+                                                                ? 'bg-red-50 text-red-600'
+                                                                : 'bg-yellow-50 text-yellow-700'
+                                                    }`}>
+                                                        {status}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            {detailActivitiesTotalPages > 1 && detailUser && (
+                                <div className="flex items-center justify-center gap-3 mt-4">
+                                    <button
+                                        type="button"
+                                        disabled={detailActivitiesPage <= 1}
+                                        onClick={() => fetchDetailActivities(detailUser.id, detailActivitiesPage - 1)}
+                                        className="px-3 py-1 rounded-md border border-gray-200 disabled:opacity-40"
+                                    >
+                                        Prev
+                                    </button>
+                                    <span className="text-sm text-gray-500">{detailActivitiesPage} / {detailActivitiesTotalPages}</span>
+                                    <button
+                                        type="button"
+                                        disabled={detailActivitiesPage >= detailActivitiesTotalPages}
+                                        onClick={() => fetchDetailActivities(detailUser.id, detailActivitiesPage + 1)}
+                                        className="px-3 py-1 rounded-md border border-gray-200 disabled:opacity-40"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            <Modal
+                open={!!selectedActivityDetail}
+                onClose={() => setSelectedActivityDetail(null)}
+                title="Detail Aktivitas"
+                icon={Activity}
+                size="md"
+                footer={
+                    <Button variant="secondary" onClick={() => setSelectedActivityDetail(null)}>
+                        Tutup
+                    </Button>
+                }
+            >
+                {selectedActivityDetail && (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div><span className="text-gray-500 block text-xs">Tipe</span><strong>{selectedActivityDetail.type}</strong></div>
+                            <div><span className="text-gray-500 block text-xs">Tanggal</span><strong>{selectedActivityDetail.date}</strong></div>
+                            <div><span className="text-gray-500 block text-xs">Jarak</span><strong>{selectedActivityDetail.distance_km} km</strong></div>
+                            <div><span className="text-gray-500 block text-xs">Durasi</span><strong>{selectedActivityDetail.duration_minutes} mnt</strong></div>
+                            <div><span className="text-gray-500 block text-xs">Status</span><strong>{selectedActivityDetail.status}</strong></div>
+                            {selectedActivityDetail.event_name && (
+                                <div><span className="text-gray-500 block text-xs">Event</span><strong>{selectedActivityDetail.event_name}</strong></div>
+                            )}
+                        </div>
+                        {selectedActivityDetail.source_link && (
+                            <div>
+                                <span className="text-gray-500 block text-xs mb-1">Link Aktivitas</span>
+                                <a
+                                    href={selectedActivityDetail.source_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#5A2EFF] underline break-all text-sm"
+                                >
+                                    {selectedActivityDetail.source_link}
+                                </a>
+                            </div>
+                        )}
+                        {selectedActivityDetail.review_note && (
+                            <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-700">
+                                <span className="text-gray-500 block text-xs mb-1">Catatan Review</span>
+                                {selectedActivityDetail.review_note}
+                            </div>
+                        )}
+                        {selectedActivityDetail.proof_photo && (
+                            <div>
+                                <span className="text-gray-500 block text-xs mb-2">Bukti Foto</span>
+                                <img
+                                    src={selectedActivityDetail.proof_photo}
+                                    alt="Bukti aktivitas"
+                                    className="w-full max-h-64 object-cover rounded-xl border border-gray-100"
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
             </Modal>

@@ -24,6 +24,7 @@ export default function DashboardLayout() {
 
     // STATE BARU: Untuk menyimpan jumlah pending submissions
     const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
+    const [pendingRedemptionsCount, setPendingRedemptionsCount] = useState(0);
 
     const navigation = [
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -39,7 +40,7 @@ export default function DashboardLayout() {
                 { name: 'Badges', path: '/badges', icon: Medal },
                 { name: 'Streak', path: '/streak', icon: Flame },
                 { name: 'Events', path: '/events', icon: CalendarDays },
-                { name: 'Hadiah', path: '/hadiah', icon: Gift }, // Kamu bisa menambahkan badge di sini juga nanti jika perlu
+                { name: 'Hadiah', path: '/hadiah', icon: Gift, badge: pendingRedemptionsCount },
             ]
         },
         {
@@ -104,8 +105,8 @@ export default function DashboardLayout() {
             const json = await response.json();
 
             if (json.status === 'success') {
-                // Set value dari API ke state
                 setPendingSubmissionsCount(json.data.summary.pending_submissions.value || 0);
+                setPendingRedemptionsCount(json.data.summary.pending_redemptions?.value || 0);
             }
         } catch (error) {
             console.error("Gagal mengambil summary dashboard untuk sidebar");
@@ -118,13 +119,17 @@ export default function DashboardLayout() {
         
         checkTokenValidity();
         fetchAdminProfile();
-        fetchDashboardSummary(); // Panggil fungsi saat layout dimuat
+        fetchDashboardSummary();
 
+        const summaryInterval = setInterval(fetchDashboardSummary, 30000);
         const intervalId = setInterval(checkTokenValidity, 60000);
         window.addEventListener('focus', checkTokenValidity);
+        window.addEventListener('focus', fetchDashboardSummary);
         return () => {
+            clearInterval(summaryInterval);
             clearInterval(intervalId);
             window.removeEventListener('focus', checkTokenValidity);
+            window.removeEventListener('focus', fetchDashboardSummary);
         };
     }, []);
 
