@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-    Activity, Clock, Calendar, Link as LinkIcon,
-    ChevronLeft, ChevronRight, Check, User, Ruler,
-    ExternalLink, ZoomIn, FileText, AlertTriangle, CheckCircle2,
-    ClipboardList, Image as ImageIcon
+    Activity, Clock, ChevronLeft, ChevronRight, Check,
+    AlertTriangle, CheckCircle2, ClipboardList
 } from 'lucide-react';
 import {
-    PageHeader, Button, Modal, FormField, Textarea, Toast
+    PageHeader, Button, Modal, Toast
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
@@ -232,21 +230,45 @@ export default function SubmissionsPage() {
                                 submissions.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 font-bold text-gray-800">{((currentPage - 1) * 10) + index + 1}</td>
-                                        <td className="px-6 py-4 flex items-center space-x-3">
-                                            {/* <img src={`https://ui-avatars.com/api/?name=${item.participant_name}&background=random`} alt="Avatar" className="w-8 h-8 rounded-full" /> */}
+                                        <td className="px-6 py-4">
                                             <span className="font-bold text-gray-800">{item.participant_name}</span>
                                         </td>
                                         <td className="px-6 py-4 font-semibold text-gray-700">{item.activity_type}</td>
                                         <td className="px-6 py-4 text-gray-500 text-xs font-medium">{item.activity_date ? formatDate(item.activity_date) : '-'}</td>
                                         <td className="px-6 py-4">
-                                            <div className="font-bold text-gray-800">{item.distance_km} km</div>
-                                            <div className="text-xs text-gray-500">
-                                                {formatDuration(item.duration_minutes, item.duration_seconds)}
-                                            </div>
-                                            {formatPace(item.pace_min_per_km) && (
-                                                <div className="text-xs text-[#5A2EFF] font-semibold mt-0.5">
-                                                    Pace: {formatPace(item.pace_min_per_km)}
+                                            {item.input_fields && item.input_fields.length > 0 ? (
+                                                <div className="space-y-0.5">
+                                                    {item.input_fields.map((field) => {
+                                                        const val = item.submission_data?.[field.key];
+                                                        return (
+                                                            <div key={field.key} className="text-xs text-gray-700">
+                                                                <span className="font-semibold">{field.label}:</span>{' '}
+                                                                {val != null ? val : '-'}
+                                                                {field.unit ? ` ${field.unit}` : ''}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {item.computed_metrics && Object.keys(item.computed_metrics).length > 0 && (
+                                                        <div className="text-xs text-[#5A2EFF] font-semibold mt-1">
+                                                            {item.output_metrics?.map((m) => {
+                                                                const v = item.computed_metrics?.[m.key];
+                                                                return v != null ? `${m.label}: ${v} ${m.unit}` : null;
+                                                            }).filter(Boolean).join(' • ')}
+                                                        </div>
+                                                    )}
                                                 </div>
+                                            ) : (
+                                                <>
+                                                    <div className="font-bold text-gray-800">{item.distance_km} km</div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {formatDuration(item.duration_minutes, item.duration_seconds)}
+                                                    </div>
+                                                    {formatPace(item.pace_min_per_km) && (
+                                                        <div className="text-xs text-[#5A2EFF] font-semibold mt-0.5">
+                                                            Pace: {formatPace(item.pace_min_per_km)}
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
@@ -325,115 +347,129 @@ export default function SubmissionsPage() {
                 }
             >
                 {selectedSubmission && (
-                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                        <div className="space-y-6">
-                            <div className="rounded-2xl border border-gray-100 bg-[#F8F9FC] p-5 shadow-sm">
-                                <h3 className="mb-4 flex items-center text-sm font-bold text-gray-900">
-                                    <Activity className="mr-2 h-4 w-4 text-[#5A2EFF]" /> Activity Information
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField label="Nama Peserta">
-                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
-                                            <User className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                            <span className="truncate text-sm font-semibold text-gray-800">{selectedSubmission.participant_name}</span>
-                                        </div>
-                                    </FormField>
-                                    <FormField label="Status">
-                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
-                                            <Clock className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                            <span className="text-sm font-bold uppercase text-gray-800">{selectedSubmission.status}</span>
-                                        </div>
-                                    </FormField>
-                                    <FormField label="Aktifitas">
-                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
-                                            <Activity className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                            <span className="truncate text-sm font-semibold text-gray-800">{selectedSubmission.activity_type}</span>
-                                        </div>
-                                    </FormField>
-                                    <FormField label="Tanggal Aktivitas">
-                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
-                                            <Calendar className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                            <span className="text-sm font-semibold text-gray-800">{selectedSubmission.activity_date ? formatDate(selectedSubmission.activity_date) : '-'}</span>
-                                        </div>
-                                    </FormField>
-                                    <FormField label="Jarak (km)">
-                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
-                                            <Ruler className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                            <span className="text-sm font-semibold text-gray-800">{selectedSubmission.distance_km}</span>
-                                        </div>
-                                    </FormField>
-                                    <FormField label="Durasi">
-                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
-                                            <Clock className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                            <span className="text-sm font-semibold text-gray-800">
-                                                {formatDuration(selectedSubmission.duration_minutes, selectedSubmission.duration_seconds)}
-                                            </span>
-                                        </div>
-                                    </FormField>
-                                    {formatPace(selectedSubmission.pace_min_per_km) && (
-                                        <FormField label="Pace">
-                                            <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
-                                                <Activity className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                                <span className="text-sm font-semibold text-gray-800">{formatPace(selectedSubmission.pace_min_per_km)}</span>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div className="space-y-5">
+                            <div className="rounded-xl bg-gray-50 p-5">
+                                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                                    <div>
+                                        <span className="text-gray-400 text-xs">Nama Peserta</span>
+                                        <p className="font-semibold text-gray-900 truncate">{selectedSubmission.participant_name}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 text-xs">Status</span>
+                                        <p className="font-bold uppercase text-gray-900">{selectedSubmission.status}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 text-xs">Aktivitas</span>
+                                        <p className="font-semibold text-gray-900 truncate">{selectedSubmission.activity_type}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 text-xs">Tanggal Aktivitas</span>
+                                        <p className="font-semibold text-gray-900">{selectedSubmission.activity_date ? formatDate(selectedSubmission.activity_date) : '-'}</p>
+                                    </div>
+                                    {(!selectedSubmission.input_fields || selectedSubmission.input_fields.length === 0) && (
+                                        <>
+                                            <div>
+                                                <span className="text-gray-400 text-xs">Jarak</span>
+                                                <p className="font-semibold text-gray-900">{selectedSubmission.distance_km} km</p>
                                             </div>
-                                        </FormField>
+                                            <div>
+                                                <span className="text-gray-400 text-xs">Durasi</span>
+                                                <p className="font-semibold text-gray-900">
+                                                    {formatDuration(selectedSubmission.duration_minutes, selectedSubmission.duration_seconds)}
+                                                </p>
+                                            </div>
+                                            {formatPace(selectedSubmission.pace_min_per_km) && (
+                                                <div>
+                                                    <span className="text-gray-400 text-xs">Pace</span>
+                                                    <p className="font-semibold text-[#5A2EFF]">{formatPace(selectedSubmission.pace_min_per_km)}</p>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
-                                    <FormField label="Waktu Submit">
-                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
-                                            <Calendar className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-gray-800">
-                                                {formatDate(selectedSubmission.submitted_at)}
-                                            </span>
-                                        </div>
-                                    </FormField>
-                                    <FormField label="Sumber" className="col-span-2">
-                                        <div className="flex items-center rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 shadow-sm">
-                                            <LinkIcon className="mr-2.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                            <a href={selectedSubmission.source_link} target="_blank" rel="noreferrer" className="flex-1 truncate text-sm font-semibold text-gray-800 hover:text-[#5A2EFF]">
-                                                {selectedSubmission.source_link}
-                                            </a>
-                                            <ExternalLink className="h-4 w-4 flex-shrink-0 text-blue-500" />
-                                        </div>
-                                    </FormField>
+                                    <div>
+                                        <span className="text-gray-400 text-xs">Waktu Submit</span>
+                                        <p className="font-semibold text-gray-900">{formatDate(selectedSubmission.submitted_at)}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <span className="text-gray-400 text-xs">Sumber</span>
+                                        <p className="font-semibold text-gray-900 truncate">
+                                            {selectedSubmission.source_link ? (
+                                                <a href={selectedSubmission.source_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                                                    {selectedSubmission.source_link}
+                                                </a>
+                                            ) : '-'}
+                                        </p>
+                                    </div>
                                 </div>
+
+                                {selectedSubmission.input_fields && selectedSubmission.input_fields.length > 0 && (
+                                    <>
+                                        <hr className="my-4 border-gray-200" />
+                                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Input Parameter</h4>
+                                        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                                            {selectedSubmission.input_fields.map((field) => {
+                                                const value = selectedSubmission.submission_data?.[field.key];
+                                                return (
+                                                    <div key={field.key}>
+                                                        <span className="text-gray-400 text-xs">{field.label}{field.unit ? ` (${field.unit})` : ''}</span>
+                                                        <p className="font-semibold text-gray-900">{value != null ? value : '-'}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                )}
+
+                                {selectedSubmission.computed_metrics && Object.keys(selectedSubmission.computed_metrics).length > 0 && (
+                                    <>
+                                        <hr className="my-4 border-gray-200" />
+                                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Output Metrik</h4>
+                                        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                                            {selectedSubmission.output_metrics?.map((metric) => {
+                                                const value = selectedSubmission.computed_metrics?.[metric.key];
+                                                return (
+                                                    <div key={metric.key}>
+                                                        <span className="text-gray-400 text-xs">{metric.label} ({metric.unit})</span>
+                                                        <p className="font-semibold text-[#5A2EFF]">{value != null ? value : '-'}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {selectedSubmission.status.toUpperCase() === 'PENDING' ? (
-                                <FormField label="Catatan Verifikasi Admin" optional hint="Opsional — wajib diisi jika menolak aktivitas">
-                                    <Textarea
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Catatan Verifikasi Admin</label>
+                                    <p className="text-xs text-gray-400 mb-2">Opsional — wajib diisi jika menolak aktivitas</p>
+                                    <textarea
                                         rows={3}
+                                        className="w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]/20 focus:border-[#5A2EFF]"
                                         placeholder="Ketik catatan di sini..."
                                         value={reviewNote}
                                         onChange={(e) => setReviewNote(e.target.value)}
                                     />
-                                </FormField>
+                                </div>
                             ) : (
-                                <FormField label="Catatan Verifikasi Admin">
-                                    <div className="flex items-start rounded-xl border border-gray-200 bg-white px-3.5 py-3 shadow-sm">
-                                        <FileText className="mr-2.5 mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                                        <span className="text-sm font-medium italic text-gray-700">
-                                            {selectedSubmission.review_note || 'Tidak ada catatan.'}
-                                        </span>
-                                    </div>
-                                </FormField>
+                                <div>
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Catatan Verifikasi Admin</span>
+                                    <p className="mt-1.5 text-sm italic text-gray-600 bg-gray-50 rounded-lg px-3.5 py-2.5">
+                                        {selectedSubmission.review_note || 'Tidak ada catatan.'}
+                                    </p>
+                                </div>
                             )}
                         </div>
 
-                        <div className="flex flex-col rounded-2xl border border-gray-100 bg-[#F8F9FC] p-5 shadow-sm">
-                            <h3 className="mb-4 flex items-center text-sm font-bold text-gray-900">
-                                <ImageIcon className="mr-2 h-4 w-4 text-[#5A2EFF]" /> Bukti Foto
-                            </h3>
+                        <div className="flex flex-col rounded-xl bg-gray-50 p-5">
+                            <h3 className="mb-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Bukti Foto</h3>
                             <div
-                                className="relative flex flex-1 cursor-zoom-in items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-inner"
+                                className="relative flex flex-1 cursor-zoom-in items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white"
                                 onClick={() => selectedSubmission.proof_photo && setIsZoomed(true)}
                             >
                                 {selectedSubmission.proof_photo ? (
-                                    <>
-                                        <img src={selectedSubmission.proof_photo} alt="Bukti" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 hover:bg-black/30">
-                                            <ZoomIn className="h-10 w-10 scale-50 text-white opacity-0 drop-shadow-lg transition-all duration-300 hover:scale-100 hover:opacity-100" />
-                                        </div>
-                                    </>
+                                    <img src={selectedSubmission.proof_photo} alt="Bukti" className="h-full w-full object-cover" />
                                 ) : (
                                     <p className="text-sm font-medium text-gray-400">Tidak ada foto bukti</p>
                                 )}
