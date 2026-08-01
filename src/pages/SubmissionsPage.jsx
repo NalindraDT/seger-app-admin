@@ -392,6 +392,7 @@ export default function SubmissionsPage() {
                         <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
                 </div>
             </div>
+            </div>
 
             {/* ========================================= */}
             {/* 1. OVERLAY ZOOM GAMBAR (z-index 60)         */}
