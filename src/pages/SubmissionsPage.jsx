@@ -299,12 +299,14 @@ export default function SubmissionsPage() {
                                             <span className="font-bold text-gray-800">{item.participant_name}</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="font-semibold text-gray-700">{item.activity_type}</span>
-                                            {item.submission_scope === 'event' && item.event_name && (
-                                                <span className="ml-2 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-200">
-                                                    {item.event_name}
-                                                </span>
-                                            )}
+                                            <div className="flex flex-col gap-1">
+                                                <span className="font-semibold text-gray-700">{item.activity_type}</span>
+                                                {item.submission_scope === 'event' && item.event_name && (
+                                                    <span className="self-start px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-200">
+                                                        {item.event_name}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-gray-500 text-xs font-medium">{item.activity_date ? formatDate(item.activity_date) : '-'}</td>
                                         <td className="px-6 py-4">
