@@ -236,33 +236,40 @@ export default function SubmissionsPage() {
             </div>
 
                         {/* SEARCH & TABS */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-8">
-                <SearchBar
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                    placeholder="Cari nama peserta..."
-                />
-                <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1 inline-flex">
-
-
-
-
-                    {['All', 'Pending', 'Approved', 'Rejected'].map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
-                            className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab ? 'bg-white text-[#5A2EFF] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
+            <div className="flex flex-col gap-4 mt-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <SearchBar
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                        placeholder="Cari nama peserta..."
+                    />
+                    <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1 inline-flex">
+                        {['All', 'Pending', 'Approved', 'Rejected'].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+                                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab ? 'bg-white text-[#5A2EFF] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                {/* <div className="flex space-x-3">
-                    <button className="flex items-center px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50">
-                        <Filter className="w-4 h-4 mr-2" /> Advanced Filter
-                    </button>
-                </div> */}
+                <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Scope:</span>
+                    <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1">
+                        {['All', 'annual', 'event'].map((scope) => (
+                            <button
+                                key={scope}
+                                onClick={() => { setScopeFilter(scope); setCurrentPage(1); }}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${scopeFilter === scope ? 'bg-white text-[#5A2EFF] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                {scope === 'All' ? 'Semua' : scope === 'annual' ? 'Reguler' : 'Event'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             {/* TABLE */}
@@ -386,23 +393,6 @@ export default function SubmissionsPage() {
                         ))}
                         <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
                 </div>
-            </div>
-
-            {/* SCOPE FILTER */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Scope</p>
-                <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1 inline-flex">
-                    {['All', 'annual', 'event'].map((scope) => (
-                        <button
-                            key={scope}
-                            onClick={() => { setScopeFilter(scope); setCurrentPage(1); }}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${scopeFilter === scope ? 'bg-white text-[#5A2EFF] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            {scope === 'All' ? 'Semua' : scope === 'annual' ? 'Reguler' : 'Event'}
-                        </button>
-                    ))}
-                </div>
-            </div>
             </div>
 
             {/* ========================================= */}
