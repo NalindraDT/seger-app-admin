@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
     Activity, Clock, ChevronLeft, ChevronRight, Check,
-    AlertTriangle, CheckCircle2, ClipboardList
+    AlertTriangle, CheckCircle2, ClipboardList, Trash2
 } from 'lucide-react';
 import {
-    PageHeader, Button, Modal, Toast
+    PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
@@ -12,10 +12,15 @@ export default function SubmissionsPage() {
     const [submissions, setSubmissions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('All');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [scopeFilter, setScopeFilter] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalData, setTotalData] = useState(0);
     const [dashboardSummary, setDashboardSummary] = useState(null);
+
+    const [submissionToDelete, setSubmissionToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // STATE UNTUK MODAL DETAIL & ZOOM
     const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -31,8 +36,9 @@ export default function SubmissionsPage() {
         try {
             const token = localStorage.getItem('jwt_token');
             const statusQuery = activeTab === 'All' ? '' : `&status=${activeTab.toLowerCase()}`;
-
-            const response = await fetch(`${getBaseUrl()}/admin/activity-submissions?page=${currentPage}&limit=10${statusQuery}`, {
+            const searchQuery = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
+            const scopeQuery = scopeFilter === 'All' ? '' : `&scope=${scopeFilter}`;
+            const response = await fetch(`${getBaseUrl()}/admin/activity-submissions?page=${currentPage}&limit=10${statusQuery}${searchQuery}${scopeQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -119,9 +125,34 @@ export default function SubmissionsPage() {
         setConfirmAction(null);
     };
 
+    const handleDelete = async () => {
+        if (!submissionToDelete) return;
+        setIsDeleting(true);
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const response = await fetch(`${getBaseUrl()}/admin/activity-submissions/${submissionToDelete.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const json = await response.json();
+            if (json.status === 'success') {
+                setToastMessage('Submission berhasil dihapus.');
+                fetchSubmissions();
+                fetchDashboardSummary();
+            } else {
+                setToastMessage(json.message || 'Gagal menghapus submission.');
+            }
+        } catch {
+            setToastMessage('Terjadi kesalahan jaringan.');
+        } finally {
+            setIsDeleting(false);
+            setSubmissionToDelete(null);
+        }
+    };
+
     useEffect(() => {
         fetchSubmissions();
-    }, [activeTab, currentPage]);
+    }, [activeTab, currentPage, searchTerm, scopeFilter]);
 
     useEffect(() => {
         fetchDashboardSummary();
@@ -154,9 +185,29 @@ export default function SubmissionsPage() {
         return `${pace} min/km`;
     };
 
+    const getPageNumbers = () => {
+        const pages = [];
+        const maxVisible = 5;
+        let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        const end = Math.min(totalPages, start + maxVisible - 1);
+        if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+        for (let i = start; i <= end; i++) pages.push(i);
+        return pages;
+    };
+
     return (
         <div className="space-y-6">
             <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+
+            <ConfirmModal
+                open={!!submissionToDelete}
+                onClose={() => setSubmissionToDelete(null)}
+                onConfirm={handleDelete}
+                title="Hapus Submission"
+                description={`Yakin ingin menghapus submission dari "${submissionToDelete?.participant_name}"? Tindakan ini tidak bisa dibatalkan.`}
+                confirmLabel="Hapus"
+                isLoading={isDeleting}
+            />
 
             <PageHeader
                 title="Pengajuan Aktivitas"
@@ -184,9 +235,18 @@ export default function SubmissionsPage() {
                 </div>
             </div>
 
-            {/* TABS */}
+                        {/* SEARCH & TABS */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-8">
+                <SearchBar
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                    placeholder="Cari nama peserta..."
+                />
                 <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1 inline-flex">
+
+
+
+
                     {['All', 'Pending', 'Approved', 'Rejected'].map((tab) => (
                         <button
                             key={tab}
@@ -233,7 +293,14 @@ export default function SubmissionsPage() {
                                         <td className="px-6 py-4">
                                             <span className="font-bold text-gray-800">{item.participant_name}</span>
                                         </td>
-                                        <td className="px-6 py-4 font-semibold text-gray-700">{item.activity_type}</td>
+                                        <td className="px-6 py-4">
+                                            <span className="font-semibold text-gray-700">{item.activity_type}</span>
+                                            {item.submission_scope === 'event' && item.event_name && (
+                                                <span className="ml-2 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-200">
+                                                    {item.event_name}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-gray-500 text-xs font-medium">{item.activity_date ? formatDate(item.activity_date) : '-'}</td>
                                         <td className="px-6 py-4">
                                             {item.input_fields && item.input_fields.length > 0 ? (
@@ -276,13 +343,22 @@ export default function SubmissionsPage() {
                                         </td>
                                         <td className="px-6 py-4 text-gray-500 text-xs font-medium">{formatDate(item.submitted_at)}</td>
                                         <td className="px-6 py-4 text-center">
-                                            <Button
-                                                size="sm"
-                                                variant="secondary"
-                                                onClick={() => setSelectedSubmission(item)}
-                                            >
-                                                Detail
-                                            </Button>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    onClick={() => setSelectedSubmission(item)}
+                                                >
+                                                    Detail
+                                                </Button>
+                                                <button
+                                                    onClick={() => setSubmissionToDelete(item)}
+                                                    className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                                    title="Hapus"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -299,10 +375,34 @@ export default function SubmissionsPage() {
                     </p>
                     <div className="flex space-x-1">
                         <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{currentPage}</button>
+                        {getPageNumbers().map((page) => (
+                            <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-colors ${page === currentPage ? 'bg-[#5A2EFF] text-white' : 'border border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                            >
+                                {page}
+                            </button>
+                        ))}
                         <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
-                    </div>
                 </div>
+            </div>
+
+            {/* SCOPE FILTER */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Scope</p>
+                <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1 inline-flex">
+                    {['All', 'annual', 'event'].map((scope) => (
+                        <button
+                            key={scope}
+                            onClick={() => { setScopeFilter(scope); setCurrentPage(1); }}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${scopeFilter === scope ? 'bg-white text-[#5A2EFF] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            {scope === 'All' ? 'Semua' : scope === 'annual' ? 'Reguler' : 'Event'}
+                        </button>
+                    ))}
+                </div>
+            </div>
             </div>
 
             {/* ========================================= */}

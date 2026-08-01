@@ -422,7 +422,23 @@ export default function RewardsPage() {
                         <p className="text-sm text-gray-500 font-medium">Showing {redemptions.length > 0 ? ((redemptionsPage - 1) * 10) + 1 : 0}-{Math.min(redemptionsPage * 10, totalRedemptions)} of {totalRedemptions}</p>
                         <div className="flex space-x-1">
                             <button onClick={() => setRedemptionsPage(p => Math.max(1, p - 1))} disabled={redemptionsPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
-                            <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{redemptionsPage}</button>
+                            {(function () {
+                                const pages = [];
+                                const maxVisible = 5;
+                                let start = Math.max(1, redemptionsPage - Math.floor(maxVisible / 2));
+                                const end = Math.min(redemptionsTotalPages, start + maxVisible - 1);
+                                if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+                                for (let i = start; i <= end; i++) pages.push(i);
+                                return pages.map((page) => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setRedemptionsPage(page)}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-colors ${page === redemptionsPage ? 'bg-[#5A2EFF] text-white' : 'border border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        {page}
+                                    </button>
+                                ));
+                            })()}
                             <button onClick={() => setRedemptionsPage(p => Math.min(redemptionsTotalPages, p + 1))} disabled={redemptionsPage === redemptionsTotalPages || redemptionsTotalPages === 0} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
                         </div>
                     </div>

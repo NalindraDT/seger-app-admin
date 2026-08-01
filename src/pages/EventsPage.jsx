@@ -341,7 +341,23 @@ export default function EventsPage() {
                     </p>
                     <div className="flex space-x-1">
                         <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{currentPage}</button>
+                        {(function () {
+                            const pages = [];
+                            const maxVisible = 5;
+                            let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                            const end = Math.min(totalPages, start + maxVisible - 1);
+                            if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+                            for (let i = start; i <= end; i++) pages.push(i);
+                            return pages.map((page) => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-colors ${page === currentPage ? 'bg-[#5A2EFF] text-white' : 'border border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                >
+                                    {page}
+                                </button>
+                            ));
+                        })()}
                         <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
                     </div>
                 </div>

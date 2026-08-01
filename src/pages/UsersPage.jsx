@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import {
     Users, Upload, Edit, Eye, ChevronLeft, ChevronRight,
@@ -16,6 +16,8 @@ export default function UsersPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const debounceRef = useRef(null);
 
     const [stats, setStats] = useState({ total: 0, active: 0 });
     const [departments, setDepartments] = useState([]);
@@ -57,7 +59,8 @@ export default function UsersPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/users?page=${currentPage}&limit=10`, {
+            const searchQuery = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
+            const response = await fetch(`${getBaseUrl()}/admin/users?page=${currentPage}&limit=10${searchQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -122,11 +125,19 @@ export default function UsersPage() {
     };
 
     useEffect(() => {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+        }, 300);
+        return () => clearTimeout(debounceRef.current);
+    }, [searchTerm]);
+
+    useEffect(() => {
         fetchUsers();
         fetchStats();
         fetchDepartments();
         fetchCompanies();
-    }, [currentPage]);
+    }, [currentPage, debouncedSearch]);
 
     const showToast = (message) => {
         setToastMessage(message);
@@ -421,10 +432,22 @@ export default function UsersPage() {
         }
     };
 
-    const filteredUsers = users.filter(user =>
-        user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users;
+
+    const getPageNumbers = () => {
+        const pages = [];
+        const maxVisible = 5;
+        let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        const end = Math.min(totalPages, start + maxVisible - 1);
+        if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+        for (let i = start; i <= end; i++) pages.push(i);
+        return pages;
+    };
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1);
+    };
 
     return (
         <div className="space-y-6 relative">
@@ -449,7 +472,7 @@ export default function UsersPage() {
                 <SearchBar
                     label="Cari User"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     placeholder="Cari email atau nama user..."
                     className="w-full md:max-w-md"
                 />
@@ -558,7 +581,15 @@ export default function UsersPage() {
                     <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages} · {totalItems} pengguna</p>
                     <div className="flex space-x-1">
                         <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{currentPage}</button>
+                        {getPageNumbers().map((page) => (
+                            <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-colors ${page === currentPage ? 'bg-[#5A2EFF] text-white' : 'border border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                            >
+                                {page}
+                            </button>
+                        ))}
                         <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
                     </div>
                 </div>
