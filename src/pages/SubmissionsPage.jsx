@@ -236,14 +236,14 @@ export default function SubmissionsPage() {
             </div>
 
                         {/* SEARCH & TABS */}
-            <div className="flex flex-col gap-4 mt-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <SearchBar
-                        value={searchTerm}
-                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                        placeholder="Cari nama peserta..."
-                    />
-                    <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1 inline-flex">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-8">
+                <SearchBar
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                    placeholder="Cari nama peserta..."
+                />
+                <div className="flex items-center gap-3">
+                    <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1">
                         {['All', 'Pending', 'Approved', 'Rejected'].map((tab) => (
                             <button
                                 key={tab}
@@ -255,9 +255,7 @@ export default function SubmissionsPage() {
                             </button>
                         ))}
                     </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Scope:</span>
+                    <div className="w-px h-6 bg-gray-300" />
                     <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1">
                         {['All', 'annual', 'event'].map((scope) => (
                             <button
