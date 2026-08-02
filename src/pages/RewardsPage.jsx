@@ -272,11 +272,11 @@ export default function RewardsPage() {
 
             {/* TABS */}
             <div className="border-b border-gray-200 mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <nav className="flex space-x-8">
-                    <button onClick={() => setActiveTab('hadiah')} className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors ${activeTab === 'hadiah' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                <nav className="flex space-x-6 sm:space-x-8 overflow-x-auto">
+                    <button onClick={() => setActiveTab('hadiah')} className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'hadiah' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
                         Katalog Hadiah
                     </button>
-                    <button onClick={() => { setActiveTab('redeem'); setRedemptionsPage(1); }} className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors ${activeTab === 'redeem' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                    <button onClick={() => { setActiveTab('redeem'); setRedemptionsPage(1); }} className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'redeem' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
                         Daftar Penukaran (Redeem)
                     </button>
                 </nav>
@@ -418,7 +418,7 @@ export default function RewardsPage() {
                         </table>
                     </div>
                     {/* Pagination Redeem */}
-                    <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+                    <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
                         <p className="text-sm text-gray-500 font-medium">Showing {redemptions.length > 0 ? ((redemptionsPage - 1) * 10) + 1 : 0}-{Math.min(redemptionsPage * 10, totalRedemptions)} of {totalRedemptions}</p>
                         <div className="flex space-x-1">
                             <button onClick={() => setRedemptionsPage(p => Math.max(1, p - 1))} disabled={redemptionsPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>

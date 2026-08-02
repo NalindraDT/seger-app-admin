@@ -476,17 +476,17 @@ export default function UsersPage() {
                     placeholder="Cari email atau nama user..."
                     className="w-full md:max-w-md"
                 />
-                <div className="flex space-x-3 w-full md:w-auto">
-                    <button onClick={() => setIsAddModalOpen(true)} className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-[#5A2EFF] text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-sm transition-colors">
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                    <button onClick={() => setIsAddModalOpen(true)} className="flex-1 min-w-[120px] md:flex-none flex items-center justify-center px-5 py-2.5 bg-[#5A2EFF] text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-sm transition-colors">
                         <Plus className="w-4 h-4 mr-2" /> Tambah
                     </button>
-                    <button onClick={() => setIsImportModalOpen(true)} className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-white border border-[#5A2EFF] text-[#5A2EFF] rounded-xl text-sm font-bold hover:bg-indigo-50 shadow-sm transition-colors">
+                    <button onClick={() => setIsImportModalOpen(true)} className="flex-1 min-w-[120px] md:flex-none flex items-center justify-center px-5 py-2.5 bg-white border border-[#5A2EFF] text-[#5A2EFF] rounded-xl text-sm font-bold hover:bg-indigo-50 shadow-sm transition-colors">
                         <Upload className="w-4 h-4 mr-2" /> Import
                     </button>
                     <button
                         onClick={handleExportUsers}
                         disabled={isExporting}
-                        className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 shadow-sm transition-colors disabled:opacity-60"
+                        className="flex-1 min-w-[120px] md:flex-none flex items-center justify-center px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 shadow-sm transition-colors disabled:opacity-60"
                     >
                         <FileDown className="w-4 h-4 mr-2" />
                         {isExporting ? 'Export...' : 'Export'}
@@ -577,9 +577,9 @@ export default function UsersPage() {
                         </tbody>
                     </table>
                 </div>
-                <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
                     <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages} · {totalItems} pengguna</p>
-                    <div className="flex space-x-1">
+                    <div className="flex flex-wrap gap-1">
                         <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
                         {getPageNumbers().map((page) => (
                             <button
@@ -621,7 +621,7 @@ export default function UsersPage() {
             >
                 <form id="add-user-form" onSubmit={handleAddSubmit} className="admin-form space-y-4 max-h-[60vh] overflow-y-auto">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField label="Nama Lengkap" required className="col-span-2">
+                        <FormField label="Nama Lengkap" required className="md:col-span-2">
                             <Input
                                 type="text"
                                 required
@@ -773,7 +773,7 @@ export default function UsersPage() {
                     <div className="text-center py-10 font-bold">Mengambil data...</div>
                 ) : detailUser && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="md:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                             <div className="flex items-center space-x-5 mb-5">
                                 <img
                                     src={detailUser.profilePhotoUrl || `https://ui-avatars.com/api/?name=${detailUser.fullName}&background=random&size=128`}
@@ -820,7 +820,7 @@ export default function UsersPage() {
                             <div className="absolute -bottom-5 -right-5 opacity-20"><Flame className="w-24 h-24" /></div>
                         </div>
 
-                        <div className="col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="md:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                             <h3 className="font-bold text-sm mb-4 flex items-center">
                                 <Activity className="w-4 h-4 text-[#5A2EFF] mr-2" />
                                 Riwayat Aktivitas

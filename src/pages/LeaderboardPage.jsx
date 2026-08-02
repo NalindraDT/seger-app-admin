@@ -17,7 +17,7 @@ const getEntryXp = (entry, isDepartmentView) => {
 };
 
 function PodiumItem({ entry, rank, isDepartmentView, getItemName, getItemAvatar }) {
-    if (!entry) return <div className="w-32 h-32 opacity-0"></div>;
+    if (!entry) return <div className="w-24 sm:w-32 h-24 sm:h-32 opacity-0"></div>;
 
     const isFirst = rank === 1;
     const isSecond = rank === 2;
@@ -48,8 +48,8 @@ function PodiumItem({ entry, rank, isDepartmentView, getItemName, getItemAvatar 
                     {rank}
                 </div>
             </div>
-            <div className={`w-32 ${bgColor} border border-white rounded-t-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col items-center justify-start pt-4 ${heightClass}`}>
-                <p className="font-extrabold text-gray-900 truncate w-28 text-center">{displayName}</p>
+            <div className={`w-24 sm:w-32 ${bgColor} border border-white rounded-t-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col items-center justify-start pt-4 ${heightClass}`}>
+                <p className="font-extrabold text-gray-900 truncate w-20 sm:w-28 text-center text-xs sm:text-sm">{displayName}</p>
                 {isDepartmentView && (
                     <p className="text-[10px] text-gray-500 mt-1">
                         {entry.active_member_count ?? 0} anggota aktif · {(entry.member_count ?? 0)} total
@@ -336,23 +336,23 @@ export default function LeaderboardPage() {
             />
 
             {/* TABS MENU */}
-            <div className="border-b border-gray-200">
-                <nav className="flex space-x-8">
+            <div className="border-b border-gray-200 overflow-x-auto">
+                <nav className="flex w-max min-w-full space-x-6 sm:space-x-8">
                     <button
                         onClick={() => { setActiveTab('individual'); setCurrentPage(1); }}
-                        className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors flex items-center ${activeTab === 'individual' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                        className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors flex items-center whitespace-nowrap ${activeTab === 'individual' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                     >
                         <Users className="w-4 h-4 mr-2" /> Individual
                     </button>
                     <button
                         onClick={() => { setActiveTab('department'); setCurrentPage(1); }}
-                        className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors flex items-center ${activeTab === 'department' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                        className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors flex items-center whitespace-nowrap ${activeTab === 'department' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                     >
                         <Building2 className="w-4 h-4 mr-2" /> Departemen
                     </button>
                     <button
                         onClick={() => { setActiveTab('event'); setCurrentPage(1); }}
-                        className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors flex items-center ${activeTab === 'event' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                        className={`py-3.5 px-1 font-bold text-sm border-b-2 transition-colors flex items-center whitespace-nowrap ${activeTab === 'event' ? 'border-[#5A2EFF] text-[#5A2EFF]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                     >
                         <CalendarDays className="w-4 h-4 mr-2" /> Peringkat Event
                     </button>
@@ -420,11 +420,11 @@ export default function LeaderboardPage() {
                     {/* TOP 3 PODIUM SECTION                      */}
                     {/* ========================================= */}
                     {currentPage === 1 && top3.length > 0 && (
-                        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm flex flex-col items-center justify-end min-h-[340px] relative overflow-hidden">
+                        <div className="bg-white rounded-3xl p-4 sm:p-8 border border-gray-100 shadow-sm flex flex-col items-center justify-end min-h-[280px] sm:min-h-[340px] relative overflow-hidden">
                             {/* Efek Cahaya Latar Belakang */}
                             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-b from-yellow-50 to-transparent rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
-                            <div className="flex items-end justify-center gap-2 sm:gap-6 relative z-10 mt-12">
+                            <div className="flex items-end justify-center gap-1 sm:gap-6 relative z-10 mt-8 sm:mt-12 scale-90 sm:scale-100 origin-bottom">
                                 {top3[1] && <PodiumItem entry={top3[1]} rank={2} isDepartmentView={isDepartmentView} getItemName={getItemName} getItemAvatar={getItemAvatar} />}
                                 {top3[0] && <PodiumItem entry={top3[0]} rank={1} isDepartmentView={isDepartmentView} getItemName={getItemName} getItemAvatar={getItemAvatar} />}
                                 {top3[2] && <PodiumItem entry={top3[2]} rank={3} isDepartmentView={isDepartmentView} getItemName={getItemName} getItemAvatar={getItemAvatar} />}
@@ -521,7 +521,7 @@ export default function LeaderboardPage() {
                         </div>
 
                         {/* PAGINATION */}
-                        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+                        <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
                             <p className="text-sm text-gray-500 font-medium">
                                 Showing {leaderboard.length > 0 ? ((currentPage - 1) * 10) + 1 : 0}-{Math.min(currentPage * 10, totalItems)} of {totalItems} entries
                             </p>

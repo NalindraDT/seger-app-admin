@@ -334,7 +334,7 @@ export default function EventsPage() {
                 </div>
 
                 {/* PAGINATION */}
-                <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
                     <p className="text-sm text-gray-500 font-medium">
                         Showing {events.length > 0 ? ((currentPage - 1) * 10) + 1 : 0}-
                         {Math.min(currentPage * 10, totalItems)} of {totalItems} results

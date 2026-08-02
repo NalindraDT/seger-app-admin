@@ -190,7 +190,7 @@ export default function DepartmentsPage() {
                         </tbody>
                     </table>
                 </div>
-                <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
                     <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages}</p>
                     <div className="flex space-x-1">
                         <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>

@@ -236,36 +236,41 @@ export default function SubmissionsPage() {
             </div>
 
                         {/* SEARCH & TABS */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-8">
+            <div className="flex flex-col gap-4 mt-8">
                 <SearchBar
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                     placeholder="Cari nama peserta..."
+                    className="w-full md:max-w-md"
                 />
-                <div className="flex items-center gap-3">
-                    <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1">
-                        {['All', 'Pending', 'Approved', 'Rejected'].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
-                                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab ? 'bg-white text-[#5A2EFF] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                {tab}
-                            </button>
-                        ))}
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="overflow-x-auto -mx-1 px-1">
+                        <div className="bg-[#F3F4F6] p-1 rounded-xl flex w-max space-x-1">
+                            {['All', 'Pending', 'Approved', 'Rejected'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+                                    className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all ${activeTab === tab ? 'bg-white text-[#5A2EFF] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <div className="w-px h-6 bg-gray-300" />
-                    <div className="bg-[#F3F4F6] p-1 rounded-xl flex space-x-1">
-                        {['All', 'annual', 'event'].map((scope) => (
-                            <button
-                                key={scope}
-                                onClick={() => { setScopeFilter(scope); setCurrentPage(1); }}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${scopeFilter === scope ? 'bg-white text-[#5A2EFF] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                            >
-                                {scope === 'All' ? 'Semua' : scope === 'annual' ? 'Reguler' : 'Event'}
-                            </button>
-                        ))}
+                    <div className="hidden sm:block w-px h-6 bg-gray-300" />
+                    <div className="overflow-x-auto -mx-1 px-1">
+                        <div className="bg-[#F3F4F6] p-1 rounded-xl flex w-max space-x-1">
+                            {['All', 'annual', 'event'].map((scope) => (
+                                <button
+                                    key={scope}
+                                    onClick={() => { setScopeFilter(scope); setCurrentPage(1); }}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all capitalize ${scopeFilter === scope ? 'bg-white text-[#5A2EFF] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    {scope === 'All' ? 'Semua' : scope === 'annual' ? 'Reguler' : 'Event'}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -375,12 +380,12 @@ export default function SubmissionsPage() {
                 </div>
 
                 {/* PAGINATION */}
-                <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
                     <p className="text-sm text-gray-500 font-medium">
                         Showing {submissions.length > 0 ? ((currentPage - 1) * 10) + 1 : 0}-
                         {Math.min(currentPage * 10, totalData)} of {totalData} results
                     </p>
-                    <div className="flex space-x-1">
+                    <div className="flex flex-wrap gap-1">
                         <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
                         {getPageNumbers().map((page) => (
                             <button
@@ -482,7 +487,7 @@ export default function SubmissionsPage() {
                                         <span className="text-gray-400 text-xs">Waktu Submit</span>
                                         <p className="font-semibold text-gray-900">{formatDate(selectedSubmission.submitted_at)}</p>
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                         <span className="text-gray-400 text-xs">Sumber</span>
                                         <p className="font-semibold text-gray-900 truncate">
                                             {selectedSubmission.source_link ? (

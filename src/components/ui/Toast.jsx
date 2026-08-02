@@ -9,7 +9,7 @@ export default function Toast({ message, onClose, type = 'success' }) {
   };
 
   return (
-    <div className="fixed top-8 right-8 z-[100] animate-in slide-in-from-right-8 fade-in duration-300">
+    <div className="fixed top-4 inset-x-4 z-[100] animate-in fade-in slide-in-from-top-4 duration-300 sm:inset-x-auto sm:right-8 sm:top-8 sm:slide-in-from-right-8">
       <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 pr-3 shadow-xl ${styles[type]}`}>
         <CheckCircle2 className={`h-5 w-5 ${type === 'success' ? 'text-[#10B981]' : 'text-red-500'}`} />
         <div>
