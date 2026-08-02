@@ -222,7 +222,7 @@ export default function BadgesPage() {
                                             <div className="w-12 h-12 bg-gray-100 rounded-full border border-gray-200 overflow-hidden flex items-center justify-center p-1">
                                                 {item.image_url ? (
                                                     <img
-                                                        src={item.image_url.startsWith('http') ? item.image_url : `https://pltuapp.potydev.cloud/${item.image_url}`}
+                                                        src={item.image_url}
                                                         alt={item.name} className="w-full h-full object-contain"
                                                         onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${item.name}&background=F3F4F6`; }}
                                                     />
@@ -330,9 +330,7 @@ export default function BadgesPage() {
                                 accept="image/*"
                                 preview={
                                     formData.imagePreview
-                                        ? (formData.imagePreview.startsWith('blob:') || formData.imagePreview.startsWith('http')
-                                            ? formData.imagePreview
-                                            : `https://pltuapp.potydev.cloud/${formData.imagePreview}`)
+                                        ? formData.imagePreview
                                         : null
                                 }
                                 onChange={handleImageChange}
@@ -360,7 +358,7 @@ export default function BadgesPage() {
                         <div className="w-full aspect-square bg-gray-100 rounded-3xl overflow-hidden border border-gray-100 shadow-inner flex items-center justify-center p-8 relative">
                             {selectedBadge.image_url ? (
                                 <img
-                                    src={selectedBadge.image_url?.startsWith('http') ? selectedBadge.image_url : `https://pltuapp.potydev.cloud/${selectedBadge.image_url}`}
+                                    src={selectedBadge.image_url}
                                     className="w-full h-full object-contain relative z-10 drop-shadow-md" alt="Detail"
                                     onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${selectedBadge.name}&background=F3F4F6`; }}
                                 />

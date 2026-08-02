@@ -317,7 +317,7 @@ export default function RewardsPage() {
                                             <td className="px-6 py-4 flex justify-center">
                                                 <div className="w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center">
                                                     {item.image ? (
-                                                        <img src={item.image.startsWith('http') ? item.image : `https://pltuapp.potydev.cloud/${item.image}`} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${item.name}&background=F3F4F6&color=9CA3AF&size=128`; }} />
+                                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${item.name}&background=F3F4F6&color=9CA3AF&size=128`; }} />
                                                     ) : <ImageIcon className="w-5 h-5 text-gray-400" />}
                                                 </div>
                                             </td>
@@ -568,9 +568,7 @@ export default function RewardsPage() {
                                 accept="image/*"
                                 preview={
                                     formData.imagePreview
-                                        ? (formData.imagePreview.startsWith('blob:') || formData.imagePreview.startsWith('http')
-                                            ? formData.imagePreview
-                                            : `https://pltuapp.potydev.cloud/${formData.imagePreview}`)
+                                        ? formData.imagePreview
                                         : null
                                 }
                                 onChange={handleImageChange}
@@ -595,7 +593,7 @@ export default function RewardsPage() {
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="w-full aspect-square bg-gray-100 rounded-3xl overflow-hidden border border-gray-100 shadow-inner">
-                        <img src={selectedReward?.image?.startsWith('http') ? selectedReward.image : `https://pltuapp.potydev.cloud/${selectedReward?.image}`} className="w-full h-full object-cover" alt="Detail" onError={(e) => { e.target.onerror = null; e.target.src = "https://ui-avatars.com/api/?name=Reward&background=F3F4F6"; }} />
+                        <img src={selectedReward?.image} className="w-full h-full object-cover" alt="Detail" onError={(e) => { e.target.onerror = null; e.target.src = "https://ui-avatars.com/api/?name=Reward&background=F3F4F6"; }} />
                     </div>
                     <div className="space-y-6">
                         <div>

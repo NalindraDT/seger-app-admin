@@ -293,7 +293,7 @@ export default function EventsPage() {
                                             <div className="w-20 h-10 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center">
                                                 {item.banner_image_url ? (
                                                     <img
-                                                        src={item.banner_image_url.startsWith('http') ? item.banner_image_url : `https://pltuapp.potydev.cloud/${item.banner_image_url}`}
+                                                        src={item.banner_image_url}
                                                         alt={item.name} className="w-full h-full object-cover"
                                                         onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${item.name}&background=F3F4F6`; }}
                                                     />
@@ -489,9 +489,7 @@ export default function EventsPage() {
                                     required={isAddModalOpen}
                                     preview={
                                         formData.imagePreview
-                                            ? (formData.imagePreview.startsWith('blob:') || formData.imagePreview.startsWith('http')
-                                                ? formData.imagePreview
-                                                : `https://pltuapp.potydev.cloud/${formData.imagePreview}`)
+                                            ? formData.imagePreview
                                             : null
                                     }
                                     onChange={handleImageChange}
@@ -668,7 +666,7 @@ export default function EventsPage() {
                     <div className="w-full aspect-[21/9] bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 shadow-inner relative">
                         {selectedEvent?.banner_image_url ? (
                             <img
-                                src={selectedEvent.banner_image_url.startsWith('http') ? selectedEvent.banner_image_url : `https://pltuapp.potydev.cloud/${selectedEvent.banner_image_url}`}
+                                src={selectedEvent.banner_image_url}
                                 className="w-full h-full object-cover" alt="Banner"
                                 onError={(e) => { e.target.onerror = null; e.target.src = "https://ui-avatars.com/api/?name=Event&background=F3F4F6"; }}
                             />
