@@ -56,16 +56,16 @@ export default function DashboardHome() {
     return (
         <div className="space-y-6">
             <PageHeader
-                title="Ringkasan Statistik"
-                subtitle="Data performa komunitas dalam 7 hari terakhir"
+                title="Statistik Minggu Ini"
+                subtitle="Ringkasan performa komunitas 7 hari terakhir"
             />
 
             {/* 4 KARTU STATISTIK ATAS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard title="TOTAL USERS" value={data.summary.total_users.value} icon={Users} color="bg-indigo-100 text-[#5A2EFF]" />
+                <StatCard title="USER BARU" value={data.summary.total_users.value} changePct={data.summary.total_users.change_pct} icon={Users} color="bg-indigo-100 text-[#5A2EFF]" />
                 <StatCard title="PENDING SUBMISSIONS" value={data.summary.pending_submissions.value} icon={ClipboardCheck} color="bg-orange-100 text-orange-600" />
-                <StatCard title="APPROVED ACTIVITIES" value={data.summary.approved_activities.value} icon={CheckCircle} color="bg-blue-100 text-blue-600" />
-                <StatCard title="REDEMPTIONS" value={data.summary.redemptions.value} icon={Gift} color="bg-rose-100 text-rose-600" />
+                <StatCard title="APPROVED MINGGU INI" value={data.summary.approved_activities.value} changePct={data.summary.approved_activities.change_pct} icon={CheckCircle} color="bg-blue-100 text-blue-600" />
+                <StatCard title="REDEMPTIONS MINGGU INI" value={data.summary.redemptions.value} changePct={data.summary.redemptions.change_pct} icon={Gift} color="bg-rose-100 text-rose-600" />
             </div>
 
             {/* 2 GRAFIK (CHARTS) */}
@@ -180,12 +180,20 @@ export default function DashboardHome() {
     );
 }
 
-function StatCard({ title, value, icon: Icon, color }) {
+function StatCard({ title, value, changePct, icon: Icon, color }) {
+    const hasChange = typeof changePct === 'number';
+    const isPositive = hasChange && changePct >= 0;
+
     return (
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between">
             <div>
                 <p className="text-[10px] font-bold text-gray-500 tracking-wider mb-1 uppercase">{title}</p>
                 <h3 className="text-3xl font-extrabold text-gray-900">{value}</h3>
+                {hasChange && (
+                    <p className={`mt-1 text-xs font-semibold ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
+                        {isPositive ? '+' : ''}{changePct}% vs minggu lalu
+                    </p>
+                )}
             </div>
             <div className={`p-2.5 rounded-full ${color}`}>
                 <Icon className="w-5 h-5" />

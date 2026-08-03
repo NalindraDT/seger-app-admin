@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     Activity, Clock, ChevronLeft, ChevronRight, Check,
-    AlertTriangle, CheckCircle2, ClipboardList, Trash2
+    AlertTriangle, CheckCircle2, ClipboardList, Trash2, Download, RotateCcw
 } from 'lucide-react';
 import {
     PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal
@@ -21,6 +21,7 @@ export default function SubmissionsPage() {
 
     const [submissionToDelete, setSubmissionToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     // STATE UNTUK MODAL DETAIL & ZOOM
     const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -29,6 +30,7 @@ export default function SubmissionsPage() {
     const [reviewNote, setReviewNote] = useState('');
     const [toastMessage, setToastMessage] = useState('');
 
+    // confirmAction: 'approved' | 'rejected' | 're_reject' | 'revert_pending'
     const [confirmAction, setConfirmAction] = useState(null);
 
     const fetchSubmissions = async () => {
@@ -77,11 +79,51 @@ export default function SubmissionsPage() {
         }
     };
 
+    const handleExportSubmissions = async () => {
+        setIsExporting(true);
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const params = new URLSearchParams();
+            if (activeTab !== 'All') params.set('status', activeTab.toLowerCase());
+            if (searchTerm) params.set('search', searchTerm);
+            if (scopeFilter !== 'All') params.set('scope', scopeFilter);
+            const query = params.toString();
+            const response = await fetch(`${getBaseUrl()}/admin/activity-submissions/export${query ? `?${query}` : ''}`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+
+            if (!response.ok) {
+                const errorJson = await response.json().catch(() => null);
+                throw new Error(errorJson?.error?.message || errorJson?.message || 'Gagal export data submission.');
+            }
+
+            const blob = await response.blob();
+            const contentDisposition = response.headers.get('Content-Disposition') || '';
+            const fileNameMatch = contentDisposition.match(/filename="([^"]+)"/);
+            const fileName = fileNameMatch?.[1] || `submissions-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            setToastMessage('Data submission berhasil diekspor!');
+        } catch (error) {
+            setToastMessage(error.message || 'Terjadi kesalahan saat export data submission.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     // Fungsi Eksekusi API (Dijalankan SETELAH konfirmasi)
     const executeVerification = async () => {
         if (!selectedSubmission || !confirmAction) return;
 
-        if (confirmAction === 'rejected' && !reviewNote.trim()) {
+        const isRejectAction = confirmAction === 'rejected' || confirmAction === 're_reject';
+        if (isRejectAction && !reviewNote.trim()) {
             setToastMessage('Catatan penolakan wajib diisi sebelum menolak aktivitas.');
             setConfirmAction(null);
             return;
@@ -90,16 +132,28 @@ export default function SubmissionsPage() {
         setIsVerifying(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/activity-submissions/${selectedSubmission.id}/verify`, {
+            const isReReview = confirmAction === 're_reject' || confirmAction === 'revert_pending';
+            const endpoint = isReReview
+                ? `${getBaseUrl()}/admin/activity-submissions/${selectedSubmission.id}/re-review`
+                : `${getBaseUrl()}/admin/activity-submissions/${selectedSubmission.id}/verify`;
+
+            const body = isReReview
+                ? {
+                    action: confirmAction === 're_reject' ? 'reject' : 'revert_pending',
+                    review_note: reviewNote || (confirmAction === 'revert_pending' ? 'Dikembalikan ke pending untuk peninjauan ulang.' : ''),
+                }
+                : {
+                    status: confirmAction,
+                    review_note: reviewNote || (confirmAction === 'approved' ? 'Telah diverifikasi oleh Admin.' : ''),
+                };
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    status: confirmAction,
-                    review_note: reviewNote || (confirmAction === 'approved' ? "Telah diverifikasi oleh Admin." : "")
-                })
+                body: JSON.stringify(body)
             });
 
             const json = await response.json();
@@ -108,8 +162,9 @@ export default function SubmissionsPage() {
                 closeModal();
                 fetchSubmissions();
                 fetchDashboardSummary();
+                setToastMessage(isReReview ? 'Peninjauan ulang berhasil.' : 'Verifikasi berhasil.');
             } else {
-                setToastMessage(json.message || 'Gagal melakukan verifikasi');
+                setToastMessage(json.message || json.error?.message || 'Gagal melakukan verifikasi');
             }
         } catch (error) {
             setToastMessage('Terjadi kesalahan jaringan.');
@@ -212,6 +267,16 @@ export default function SubmissionsPage() {
             <PageHeader
                 title="Pengajuan Aktivitas"
                 subtitle="Review dan atur submissions user"
+                actions={
+                    <Button
+                        variant="secondary"
+                        icon={Download}
+                        onClick={handleExportSubmissions}
+                        disabled={isExporting}
+                    >
+                        {isExporting ? 'Export...' : 'Export'}
+                    </Button>
+                }
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
@@ -435,6 +500,21 @@ export default function SubmissionsPage() {
                                 Approve
                             </Button>
                         </>
+                    ) : selectedSubmission?.status.toUpperCase() === 'APPROVED' ? (
+                        <>
+                            <p className="hidden flex-1 text-xs font-medium leading-relaxed text-gray-500 md:block">
+                                Salah approve? Cabut poin lalu tolak, atau kembalikan ke pending untuk ditinjau ulang.
+                            </p>
+                            <Button variant="danger" icon={AlertTriangle} onClick={() => setConfirmAction('re_reject')}>
+                                Tolak (salah approve)
+                            </Button>
+                            <Button variant="secondary" icon={RotateCcw} onClick={() => setConfirmAction('revert_pending')}>
+                                Kembalikan ke Pending
+                            </Button>
+                            <Button variant="secondary" onClick={closeModal}>
+                                Tutup
+                            </Button>
+                        </>
                     ) : (
                         <Button variant="secondary" className="ml-auto" onClick={closeModal}>
                             Tutup
@@ -536,10 +616,19 @@ export default function SubmissionsPage() {
                                 )}
                             </div>
 
-                            {selectedSubmission.status.toUpperCase() === 'PENDING' ? (
+                            {selectedSubmission.status.toUpperCase() === 'PENDING' || selectedSubmission.status.toUpperCase() === 'APPROVED' ? (
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Catatan Verifikasi Admin</label>
-                                    <p className="text-xs text-gray-400 mb-2">Opsional — wajib diisi jika menolak aktivitas</p>
+                                    <p className="text-xs text-gray-400 mb-2">
+                                        {selectedSubmission.status.toUpperCase() === 'APPROVED'
+                                            ? 'Wajib diisi jika menolak (salah approve). Opsional untuk kembalikan ke pending.'
+                                            : 'Opsional — wajib diisi jika menolak aktivitas'}
+                                    </p>
+                                    {selectedSubmission.status.toUpperCase() === 'APPROVED' && selectedSubmission.review_note && (
+                                        <p className="mb-2 text-xs italic text-gray-500">
+                                            Catatan sebelumnya: {selectedSubmission.review_note}
+                                        </p>
+                                    )}
                                     <textarea
                                         rows={3}
                                         className="w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#5A2EFF]/20 focus:border-[#5A2EFF]"
@@ -578,8 +667,16 @@ export default function SubmissionsPage() {
             <Modal
                 open={!!confirmAction && !!selectedSubmission}
                 onClose={() => !isVerifying && setConfirmAction(null)}
-                title={confirmAction === 'approved' ? 'Setujui Aktivitas?' : 'Tolak Aktivitas?'}
-                icon={confirmAction === 'approved' ? CheckCircle2 : AlertTriangle}
+                title={
+                    confirmAction === 'approved'
+                        ? 'Setujui Aktivitas?'
+                        : confirmAction === 'revert_pending'
+                            ? 'Kembalikan ke Pending?'
+                            : confirmAction === 're_reject'
+                                ? 'Tolak Setelah Approve?'
+                                : 'Tolak Aktivitas?'
+                }
+                icon={confirmAction === 'approved' || confirmAction === 'revert_pending' ? CheckCircle2 : AlertTriangle}
                 size="sm"
                 footer={
                     <>
@@ -587,7 +684,7 @@ export default function SubmissionsPage() {
                             Kembali
                         </Button>
                         <Button
-                            variant={confirmAction === 'approved' ? 'success' : 'danger'}
+                            variant={confirmAction === 'approved' ? 'success' : confirmAction === 'revert_pending' ? 'secondary' : 'danger'}
                             className="flex-1"
                             onClick={executeVerification}
                             loading={isVerifying}
@@ -599,8 +696,12 @@ export default function SubmissionsPage() {
             >
                 <p className="text-sm leading-relaxed text-gray-500">
                     {confirmAction === 'approved'
-                        ? `Anda akan menyetujui aktivitas dari ${selectedSubmission?.participant_name}. Sistem akan menambahkan Poin & EXP secara otomatis. Tindakan ini tidak dapat dibatalkan.`
-                        : 'Anda akan menolak pengajuan aktivitas ini. Pengguna tidak akan mendapatkan Poin & EXP. Tindakan ini tidak dapat dibatalkan.'}
+                        ? `Anda akan menyetujui aktivitas dari ${selectedSubmission?.participant_name}. Sistem akan menambahkan Poin & EXP secara otomatis.`
+                        : confirmAction === 'revert_pending'
+                            ? `Aktivitas dari ${selectedSubmission?.participant_name} akan dikembalikan ke pending. Poin & XP yang sudah diberikan akan dicabut.`
+                            : confirmAction === 're_reject'
+                                ? `Persetujuan aktivitas dari ${selectedSubmission?.participant_name} akan dibatalkan dan ditolak. Poin & XP yang sudah diberikan akan dicabut.`
+                                : 'Anda akan menolak pengajuan aktivitas ini. Pengguna tidak akan mendapatkan Poin & EXP.'}
                 </p>
             </Modal>
         </div>
