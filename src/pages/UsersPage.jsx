@@ -55,11 +55,14 @@ export default function UsersPage() {
     const [detailActivitiesTotalPages, setDetailActivitiesTotalPages] = useState(1);
     const [selectedActivityDetail, setSelectedActivityDetail] = useState(null);
 
+    const getUserPoints = (user) => Number(user?.pointsBalance ?? user?.points_balance ?? 0);
+    const getUserXp = (user) => Number(user?.xpBalance ?? user?.xp_balance ?? 0);
+
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const searchQuery = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
+            const searchQuery = debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : '';
             const response = await fetch(`${getBaseUrl()}/admin/users?page=${currentPage}&limit=10${searchQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -79,15 +82,14 @@ export default function UsersPage() {
     const fetchStats = async () => {
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/dashboard?range=7d`, {
+            // Total User harus dari seluruh users, bukan metrik dashboard mingguan (user baru).
+            const response = await fetch(`${getBaseUrl()}/admin/users?page=1&limit=1`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
-            if (json.status === 'success' || json.success) {
-                setStats({
-                    total: json.data.summary.total_users.value,
-                    active: json.data.summary.total_users.value
-                });
+            if (json.success) {
+                const total = json.data.pagination?.totalItems ?? 0;
+                setStats({ total, active: total });
             }
         } catch (error) {
             console.error("Gagal mengambil statistik");
@@ -133,10 +135,13 @@ export default function UsersPage() {
     }, [searchTerm]);
 
     useEffect(() => {
-        fetchUsers();
         fetchStats();
         fetchDepartments();
         fetchCompanies();
+    }, []);
+
+    useEffect(() => {
+        fetchUsers();
     }, [currentPage, debouncedSearch]);
 
     const showToast = (message) => {
@@ -556,8 +561,8 @@ export default function UsersPage() {
                                         </span>
                                     </td>
 
-                                    <td className="px-6 py-4 font-bold text-gray-700 text-center">{user.pointsBalance}</td>
-                                    <td className="px-6 py-4 font-bold text-gray-700 text-center">{user.xpBalance}</td>
+                                    <td className="px-6 py-4 font-bold text-gray-700 text-center">{getUserPoints(user)}</td>
+                                    <td className="px-6 py-4 font-bold text-gray-700 text-center">{getUserXp(user)}</td>
                                     <td className="px-6 py-4 text-center">
                                         <span className={`px-2.5 py-1 rounded-md text-[9px] font-extrabold tracking-widest ${user.isActive ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                                             {user.isActive ? 'AKTIF' : 'OFF'}
@@ -809,11 +814,11 @@ export default function UsersPage() {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="bg-white/95 rounded-xl p-3 text-center">
                                         <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">Points</p>
-                                        <p className="text-xl font-black text-[#5A2EFF]">{detailUser.pointsBalance}</p>
+                                        <p className="text-xl font-black text-[#5A2EFF]">{getUserPoints(detailUser)}</p>
                                     </div>
                                     <div className="bg-white/95 rounded-xl p-3 text-center">
                                         <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">EXP</p>
-                                        <p className="text-xl font-black text-orange-500">{detailUser.xpBalance}</p>
+                                        <p className="text-xl font-black text-orange-500">{getUserXp(detailUser)}</p>
                                     </div>
                                 </div>
                             </div>
