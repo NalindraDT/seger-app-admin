@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
     CalendarDays, Plus, Edit, Trash2, Eye, ChevronLeft, ChevronRight,
-    Image as ImageIcon, Calendar, Clock, Info, Flag
+    Image as ImageIcon, Calendar, Clock, Info, Flag, Gift
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload
+    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload, ConfirmModal
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
@@ -19,6 +19,9 @@ export default function EventsPage() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isGrantConfirmOpen, setIsGrantConfirmOpen] = useState(false);
+    const [isGrantingPoints, setIsGrantingPoints] = useState(false);
+    const [grantSummary, setGrantSummary] = useState(null);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
@@ -35,6 +38,7 @@ export default function EventsPage() {
         end_at: '',
         published_at: '',
         status: 'active',
+        awards_points: false,
         banner_image: null,
         imagePreview: null,
         allowed_activities: [],
@@ -131,6 +135,7 @@ export default function EventsPage() {
         setFormData({
             name: '', description: '', rules: '', color_theme: '#5A2EFF',
             start_at: '', end_at: '', published_at: '', status: 'active',
+            awards_points: false,
             banner_image: null, imagePreview: null,
             allowed_activities: [],
         });
@@ -148,6 +153,7 @@ export default function EventsPage() {
             end_at: formatDateTimeLocal(event.end_at),
             published_at: formatDateTimeLocal(event.published_at),
             status: event.status || 'active',
+            awards_points: Boolean(event.awards_points),
             banner_image: null,
             imagePreview: event.banner_image_url,
             allowed_activities: (event.allowed_activities || []).map((item) => ({
@@ -164,7 +170,34 @@ export default function EventsPage() {
 
     const openDetailModal = (event) => {
         setSelectedEvent(event);
+        setGrantSummary(null);
         setIsDetailModalOpen(true);
+    };
+
+    const handleGrantPoints = async () => {
+        if (!selectedEvent) return;
+        setIsGrantingPoints(true);
+        try {
+            const token = localStorage.getItem('jwt_token');
+            const response = await fetch(`${getBaseUrl()}/admin/events/${selectedEvent.id}/grant-points`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const json = await response.json();
+            if (json.success) {
+                setGrantSummary(json.data);
+                setSelectedEvent((prev) => (prev ? { ...prev, awards_points: true } : prev));
+                fetchEvents();
+                showToast(`Grant selesai: ${json.data.awarded} submission mendapat total ${json.data.total_points} poin.`);
+            } else {
+                showToast(json.error?.message || json.message || 'Gagal grant poin event.');
+            }
+        } catch {
+            showToast('Terjadi kesalahan jaringan saat grant poin.');
+        } finally {
+            setIsGrantingPoints(false);
+            setIsGrantConfirmOpen(false);
+        }
     };
 
     const handleImageChange = (e) => {
@@ -196,6 +229,8 @@ export default function EventsPage() {
             } else {
                 data.append('status', formData.status);
             }
+
+            data.append('awards_points', formData.awards_points ? 'true' : 'false');
 
             if (formData.banner_image) data.append('banner_image', formData.banner_image);
 
@@ -529,6 +564,24 @@ export default function EventsPage() {
                                         </Select>
                                     </FormField>
                                 )}
+
+                                <FormField
+                                    label="Poin Event"
+                                    hint="Jika aktif, submission event yang di-approve mendapat poin seperti aktivitas tahunan (ikut batas harian)."
+                                >
+                                    <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-[#F8F9FC] px-4 py-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="mt-1 h-4 w-4 rounded border-gray-300 text-[#5A2EFF] focus:ring-[#5A2EFF]"
+                                            checked={formData.awards_points}
+                                            onChange={(e) => setFormData({ ...formData, awards_points: e.target.checked })}
+                                        />
+                                        <span>
+                                            <span className="block text-sm font-bold text-gray-800">Submission event dapat poin</span>
+                                            <span className="mt-0.5 block text-xs text-gray-500">XP tetap dihitung terpisah seperti sebelumnya.</span>
+                                        </span>
+                                    </label>
+                                </FormField>
                             </div>
                         </div>
                     </section>
@@ -649,6 +702,17 @@ export default function EventsPage() {
                 </form>
             </Modal>
 
+            <ConfirmModal
+                open={isGrantConfirmOpen}
+                onClose={() => !isGrantingPoints && setIsGrantConfirmOpen(false)}
+                onConfirm={handleGrantPoints}
+                title="Grant Poin ke Submission Approved?"
+                description={`Poin akan diberikan ke submission APPROVED pada event "${selectedEvent?.name}" yang belum punya poin. Mengikuti batas harian. XP tidak diubah. Aksi ini aman dijalankan ulang.`}
+                confirmLabel="Ya, Grant Poin"
+                loading={isGrantingPoints}
+                variant="primary"
+            />
+
             <Modal
                 open={isDetailModalOpen && !!selectedEvent}
                 onClose={() => setIsDetailModalOpen(false)}
@@ -657,9 +721,19 @@ export default function EventsPage() {
                 icon={Info}
                 size="lg"
                 footer={
-                    <Button variant="secondary" onClick={() => setIsDetailModalOpen(false)}>
-                        Tutup Detail
-                    </Button>
+                    <>
+                        <Button
+                            variant="primary"
+                            icon={Gift}
+                            onClick={() => setIsGrantConfirmOpen(true)}
+                            disabled={isGrantingPoints}
+                        >
+                            Grant poin ke submission approved
+                        </Button>
+                        <Button variant="secondary" onClick={() => setIsDetailModalOpen(false)}>
+                            Tutup Detail
+                        </Button>
+                    </>
                 }
             >
                 <div className="space-y-6">
@@ -731,6 +805,27 @@ export default function EventsPage() {
                                 {selectedEvent?.color_theme || '#9CA3AF'}
                             </span>
                         </div>
+
+                        <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-gray-100 flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Submission Dapat Poin</span>
+                            <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase ${selectedEvent?.awards_points ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                                {selectedEvent?.awards_points ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                        </div>
+
+                        {grantSummary && (
+                            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 space-y-2">
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-[#5A2EFF]">Hasil Grant Poin</p>
+                                <div className="grid grid-cols-2 gap-2 text-xs font-medium text-gray-700">
+                                    <p>Diproses: <span className="font-bold">{grantSummary.processed}</span></p>
+                                    <p>Dapat poin: <span className="font-bold">{grantSummary.awarded}</span></p>
+                                    <p>Total poin: <span className="font-bold">{grantSummary.total_points}</span></p>
+                                    <p>Sudah punya poin: <span className="font-bold">{grantSummary.skipped_already_has_points}</span></p>
+                                    <p>Kena batas harian: <span className="font-bold">{grantSummary.skipped_daily_cap}</span></p>
+                                    <p>Tanpa rule/ambang: <span className="font-bold">{grantSummary.skipped_no_rule}</span></p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </Modal>
