@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
-    Award, Plus, Edit, Trash2, Star, Hash, ShieldCheck, Eye, Info
+    Award, Plus, Edit, Trash2, Star, Hash, ShieldCheck, Eye, Info, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, CheckboxCard, SortableTh
+    FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, CheckboxCard, SortableTh, PageSizeSelect
 } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
+import { useClientPagination } from '../hooks/useClientPagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -188,6 +189,9 @@ export default function BadgesPage() {
         initialKey: 'tier',
         initialDirection: 'asc',
     });
+    const {
+        page, setPage, pageSize, setPageSize, totalPages, totalItems, pageItems, from, to,
+    } = useClientPagination(sortedBadges);
 
     return (
         <div className="space-y-6 relative">
@@ -231,7 +235,7 @@ export default function BadgesPage() {
                             ) : sortedBadges.length === 0 ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Belum ada data badge.</td></tr>
                             ) : (
-                                sortedBadges.map((item) => (
+                                pageItems.map((item) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-black text-gray-400 text-center text-lg">#{item.tier}</td>
                                         <td className="px-6 py-4 flex justify-center">
@@ -288,6 +292,19 @@ export default function BadgesPage() {
                             )}
                         </tbody>
                     </table>
+                </div>
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                        <PageSizeSelect value={pageSize} onChange={setPageSize} />
+                        <p className="text-sm text-gray-500 font-medium">
+                            Showing {from}-{to} of {totalItems}
+                        </p>
+                    </div>
+                    <div className="flex space-x-1">
+                        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
+                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{page}</button>
+                        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
+                    </div>
                 </div>
             </div>
 

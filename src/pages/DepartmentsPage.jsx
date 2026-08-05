@@ -3,9 +3,10 @@ import {
     Building2, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Textarea, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, SortableTh
+    FormField, Input, Select, Textarea, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, SortableTh, PageSizeSelect
 } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
+import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -13,6 +14,7 @@ export default function DepartmentsPage() {
     const [departments, setDepartments] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [totalPages, setTotalPages] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [toastMessage, setToastMessage] = useState('');
@@ -32,7 +34,7 @@ export default function DepartmentsPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/departments?page=${currentPage}&limit=10`, {
+            const response = await fetch(`${getBaseUrl()}/admin/departments?page=${currentPage}&limit=${pageSize}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -50,7 +52,12 @@ export default function DepartmentsPage() {
 
     useEffect(() => {
         fetchDepartments();
-    }, [currentPage]);
+    }, [currentPage, pageSize]);
+
+    const handlePageSizeChange = (size) => {
+        setPageSize(size);
+        setCurrentPage(1);
+    };
 
     const showToast = (message, type = 'success') => {
         setToastMessage(message);
@@ -183,7 +190,7 @@ export default function DepartmentsPage() {
                                 <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium">Data departemen tidak ditemukan.</td></tr>
                             ) : sortedDepartments.map((dept, index) => (
                                 <tr key={dept.id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * 10) + index + 1}</td>
+                                    <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * pageSize) + index + 1}</td>
                                     <td className="px-6 py-4 font-bold text-gray-900">{dept.name}</td>
                                     <td className="px-6 py-4 text-gray-600">{dept.description || '-'}</td>
                                     <td className="px-6 py-4 text-center">
@@ -203,7 +210,10 @@ export default function DepartmentsPage() {
                     </table>
                 </div>
                 <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
-                    <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages}</p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                        <PageSizeSelect value={pageSize} onChange={handlePageSizeChange} />
+                        <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages}</p>
+                    </div>
                     <div className="flex space-x-1">
                         <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
                         <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{currentPage}</button>

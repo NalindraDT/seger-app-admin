@@ -11,3 +11,4 @@ export { default as Toast } from './Toast';
 export { default as PageHeader } from './PageHeader';
 export { default as ConfirmModal } from './ConfirmModal';
 export { default as SortableTh } from './SortableTh';
+export { default as PageSizeSelect } from './PageSizeSelect';

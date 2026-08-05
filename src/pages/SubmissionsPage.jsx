@@ -4,9 +4,10 @@ import {
     AlertTriangle, CheckCircle2, ClipboardList, Trash2, Download, RotateCcw, Calendar
 } from 'lucide-react';
 import {
-    PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal, Input, SortableTh
+    PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal, Input, SortableTh, PageSizeSelect
 } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
+import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -19,6 +20,7 @@ export default function SubmissionsPage() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [totalPages, setTotalPages] = useState(1);
     const [totalData, setTotalData] = useState(0);
     const [dashboardSummary, setDashboardSummary] = useState(null);
@@ -51,7 +53,7 @@ export default function SubmissionsPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const params = new URLSearchParams({ page: String(currentPage), limit: '10' });
+            const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) });
             if (activeTab !== 'All') params.set('status', activeTab.toLowerCase());
             if (searchTerm) params.set('search', searchTerm);
             if (scopeFilter !== 'All') params.set('scope', scopeFilter);
@@ -232,7 +234,12 @@ export default function SubmissionsPage() {
 
     useEffect(() => {
         fetchSubmissions();
-    }, [activeTab, currentPage, searchTerm, scopeFilter, dateFrom, dateTo]);
+    }, [activeTab, currentPage, pageSize, searchTerm, scopeFilter, dateFrom, dateTo]);
+
+    const handlePageSizeChange = (size) => {
+        setPageSize(size);
+        setCurrentPage(1);
+    };
 
     useEffect(() => {
         fetchDashboardSummary();
@@ -429,7 +436,7 @@ export default function SubmissionsPage() {
                             ) : (
                                 sortedSubmissions.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-gray-800">{((currentPage - 1) * 10) + index + 1}</td>
+                                        <td className="px-6 py-4 font-bold text-gray-800">{((currentPage - 1) * pageSize) + index + 1}</td>
                                         <td className="px-6 py-4">
                                             <span className="font-bold text-gray-800">{item.participant_name}</span>
                                         </td>
@@ -511,10 +518,13 @@ export default function SubmissionsPage() {
 
                 {/* PAGINATION */}
                 <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
-                    <p className="text-sm text-gray-500 font-medium">
-                        Showing {submissions.length > 0 ? ((currentPage - 1) * 10) + 1 : 0}-
-                        {Math.min(currentPage * 10, totalData)} of {totalData} results
-                    </p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                        <PageSizeSelect value={pageSize} onChange={handlePageSizeChange} />
+                        <p className="text-sm text-gray-500 font-medium">
+                            Showing {submissions.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0}-
+                            {Math.min(currentPage * pageSize, totalData)} of {totalData} results
+                        </p>
+                    </div>
                     <div className="flex flex-wrap gap-1">
                         <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
                         {getPageNumbers().map((page) => (

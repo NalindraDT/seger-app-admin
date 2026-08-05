@@ -4,9 +4,10 @@ import {
     Image as ImageIcon, Calendar, Clock, Info, Flag, Gift
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload, ConfirmModal, SortableTh
+    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload, ConfirmModal, SortableTh, PageSizeSelect
 } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
+import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -14,6 +15,7 @@ export default function EventsPage() {
     const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
 
@@ -64,7 +66,7 @@ export default function EventsPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/events?page=${currentPage}&limit=10`, {
+            const response = await fetch(`${getBaseUrl()}/admin/events?page=${currentPage}&limit=${pageSize}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -88,7 +90,12 @@ export default function EventsPage() {
     useEffect(() => {
         fetchEvents();
         fetchActivityTypes();
-    }, [currentPage]);
+    }, [currentPage, pageSize]);
+
+    const handlePageSizeChange = (size) => {
+        setPageSize(size);
+        setCurrentPage(1);
+    };
 
     const showToast = (message, type = 'success') => {
         setToastMessage(message);
@@ -341,7 +348,7 @@ export default function EventsPage() {
                             ) : (
                                 sortedEvents.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * 10) + index + 1}</td>
+                                        <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * pageSize) + index + 1}</td>
                                         <td className="px-6 py-4 flex justify-center">
                                             <div className="w-20 h-10 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center">
                                                 {item.banner_image_url ? (
@@ -388,10 +395,13 @@ export default function EventsPage() {
 
                 {/* PAGINATION */}
                 <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
-                    <p className="text-sm text-gray-500 font-medium">
-                        Showing {events.length > 0 ? ((currentPage - 1) * 10) + 1 : 0}-
-                        {Math.min(currentPage * 10, totalItems)} of {totalItems} results
-                    </p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                        <PageSizeSelect value={pageSize} onChange={handlePageSizeChange} />
+                        <p className="text-sm text-gray-500 font-medium">
+                            Showing {events.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0}-
+                            {Math.min(currentPage * pageSize, totalItems)} of {totalItems} results
+                        </p>
+                    </div>
                     <div className="flex space-x-1">
                         <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
                         {(function () {

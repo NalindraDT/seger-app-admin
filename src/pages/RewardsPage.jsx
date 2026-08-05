@@ -5,9 +5,11 @@ import {
     Eye, Info, CheckSquare, Clock
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, SortableTh
+    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, SortableTh, PageSizeSelect
 } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
+import { useClientPagination } from '../hooks/useClientPagination';
+import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -40,6 +42,7 @@ export default function RewardsPage() {
     const [redemptions, setRedemptions] = useState([]);
     const [isRedemptionsLoading, setIsRedemptionsLoading] = useState(true);
     const [redemptionsPage, setRedemptionsPage] = useState(1);
+    const [redemptionsPageSize, setRedemptionsPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [redemptionsTotalPages, setRedemptionsTotalPages] = useState(1);
     const [totalRedemptions, setTotalRedemptions] = useState(0);
 
@@ -70,7 +73,7 @@ export default function RewardsPage() {
         setIsRedemptionsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/reward-redemptions?page=${redemptionsPage}&limit=10`, {
+            const response = await fetch(`${getBaseUrl()}/admin/reward-redemptions?page=${redemptionsPage}&limit=${redemptionsPageSize}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -92,7 +95,12 @@ export default function RewardsPage() {
         } else {
             fetchRedemptions();
         }
-    }, [activeTab, redemptionsPage]);
+    }, [activeTab, redemptionsPage, redemptionsPageSize]);
+
+    const handleRedemptionsPageSizeChange = (size) => {
+        setRedemptionsPageSize(size);
+        setRedemptionsPage(1);
+    };
 
     const showToast = (message, type = 'success') => {
         setToastMessage(message);
@@ -281,6 +289,9 @@ export default function RewardsPage() {
     };
 
     const { sortedItems: sortedRewards, sortKey: rewardsSortKey, sortDir: rewardsSortDir, requestSort: requestRewardsSort } = useTableSort(rewards);
+    const {
+        page, setPage, pageSize, setPageSize, totalPages, totalItems, pageItems, from, to,
+    } = useClientPagination(sortedRewards);
     const { sortedItems: sortedRedemptions, sortKey: redemptionsSortKey, sortDir: redemptionsSortDir, requestSort: requestRedemptionsSort } = useTableSort(redemptions);
 
     return (
@@ -333,9 +344,9 @@ export default function RewardsPage() {
                                 ) : sortedRewards.length === 0 ? (
                                     <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Belum ada data hadiah.</td></tr>
                                 ) : (
-                                    sortedRewards.map((item, index) => (
+                                    pageItems.map((item, index) => (
                                         <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-6 py-4 font-bold text-gray-800 text-center">{index + 1}</td>
+                                            <td className="px-6 py-4 font-bold text-gray-800 text-center">{(page - 1) * pageSize + index + 1}</td>
                                             <td className="px-6 py-4 flex justify-center">
                                                 <div className="w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center">
                                                     {item.image ? (
@@ -361,6 +372,19 @@ export default function RewardsPage() {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                            <PageSizeSelect value={pageSize} onChange={setPageSize} />
+                            <p className="text-sm text-gray-500 font-medium">
+                                Showing {from}-{to} of {totalItems}
+                            </p>
+                        </div>
+                        <div className="flex space-x-1">
+                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
+                            <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{page}</button>
+                            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -391,7 +415,7 @@ export default function RewardsPage() {
                                 ) : (
                                     sortedRedemptions.map((item, index) => (
                                         <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-6 py-4 font-bold text-gray-800 text-center">{((redemptionsPage - 1) * 10) + index + 1}</td>
+                                            <td className="px-6 py-4 font-bold text-gray-800 text-center">{((redemptionsPage - 1) * redemptionsPageSize) + index + 1}</td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center space-x-3">
                                                     <img src={`https://ui-avatars.com/api/?name=${item.participant_name}&background=random`} alt="Avatar" className="w-8 h-8 rounded-full" />
@@ -441,7 +465,10 @@ export default function RewardsPage() {
                     </div>
                     {/* Pagination Redeem */}
                     <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
-                        <p className="text-sm text-gray-500 font-medium">Showing {redemptions.length > 0 ? ((redemptionsPage - 1) * 10) + 1 : 0}-{Math.min(redemptionsPage * 10, totalRedemptions)} of {totalRedemptions}</p>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                            <PageSizeSelect value={redemptionsPageSize} onChange={handleRedemptionsPageSizeChange} />
+                            <p className="text-sm text-gray-500 font-medium">Showing {redemptions.length > 0 ? ((redemptionsPage - 1) * redemptionsPageSize) + 1 : 0}-{Math.min(redemptionsPage * redemptionsPageSize, totalRedemptions)} of {totalRedemptions}</p>
+                        </div>
                         <div className="flex space-x-1">
                             <button onClick={() => setRedemptionsPage(p => Math.max(1, p - 1))} disabled={redemptionsPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
                             {(function () {

@@ -5,9 +5,10 @@ import {
     FileDown, FileSpreadsheet, User as UserIcon, Mail, TrendingUp, Flame, Trash2, Plus, Activity
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar, SortableTh
+    FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar, SortableTh, PageSizeSelect
 } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
+import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -15,6 +16,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
@@ -55,6 +57,7 @@ export default function UsersPage() {
     const [detailUser, setDetailUser] = useState(null);
     const [detailActivities, setDetailActivities] = useState([]);
     const [detailActivitiesPage, setDetailActivitiesPage] = useState(1);
+    const [detailActivitiesPageSize, setDetailActivitiesPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [detailActivitiesTotalPages, setDetailActivitiesTotalPages] = useState(1);
     const [selectedActivityDetail, setSelectedActivityDetail] = useState(null);
 
@@ -66,7 +69,7 @@ export default function UsersPage() {
         try {
             const token = localStorage.getItem('jwt_token');
             const searchQuery = debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : '';
-            const response = await fetch(`${getBaseUrl()}/admin/users?page=${currentPage}&limit=10${searchQuery}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users?page=${currentPage}&limit=${pageSize}${searchQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -145,7 +148,12 @@ export default function UsersPage() {
 
     useEffect(() => {
         fetchUsers();
-    }, [currentPage, debouncedSearch]);
+    }, [currentPage, pageSize, debouncedSearch]);
+
+    const handlePageSizeChange = (size) => {
+        setPageSize(size);
+        setCurrentPage(1);
+    };
 
     const showToast = (message, type = 'success') => {
         setToastMessage(message);
@@ -231,7 +239,7 @@ export default function UsersPage() {
                 fetch(`${getBaseUrl()}/admin/users/${userId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }),
-                fetch(`${getBaseUrl()}/admin/users/${userId}/activities?page=1&limit=10`, {
+                fetch(`${getBaseUrl()}/admin/users/${userId}/activities?page=1&limit=${detailActivitiesPageSize}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }),
             ]);
@@ -258,10 +266,10 @@ export default function UsersPage() {
         }
     };
 
-    const fetchDetailActivities = async (userId, page = 1) => {
+    const fetchDetailActivities = async (userId, page = 1, limit = detailActivitiesPageSize) => {
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/users/${userId}/activities?page=${page}&limit=10`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users/${userId}/activities?page=${page}&limit=${limit}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -541,7 +549,7 @@ export default function UsersPage() {
                                 <tr><td colSpan="9" className="text-center py-10 text-gray-500 font-medium">User tidak ditemukan.</td></tr>
                             ) : sortedUsers.map((user, index) => (
                                 <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * 10) + index + 1}</td>
+                                    <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * pageSize) + index + 1}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-3">
                                             <img 
@@ -600,7 +608,10 @@ export default function UsersPage() {
                     </table>
                 </div>
                 <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
-                    <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages} · {totalItems} pengguna</p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                        <PageSizeSelect value={pageSize} onChange={handlePageSizeChange} />
+                        <p className="text-sm text-gray-500 font-medium">Halaman {currentPage} dari {totalPages} · {totalItems} pengguna</p>
+                    </div>
                     <div className="flex flex-wrap gap-1">
                         <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
                         {getPageNumbers().map((page) => (
@@ -888,25 +899,37 @@ export default function UsersPage() {
                                     })}
                                 </div>
                             )}
-                            {detailActivitiesTotalPages > 1 && detailUser && (
-                                <div className="flex items-center justify-center gap-3 mt-4">
-                                    <button
-                                        type="button"
-                                        disabled={detailActivitiesPage <= 1}
-                                        onClick={() => fetchDetailActivities(detailUser.id, detailActivitiesPage - 1)}
-                                        className="px-3 py-1 rounded-md border border-gray-200 disabled:opacity-40"
-                                    >
-                                        Prev
-                                    </button>
-                                    <span className="text-sm text-gray-500">{detailActivitiesPage} / {detailActivitiesTotalPages}</span>
-                                    <button
-                                        type="button"
-                                        disabled={detailActivitiesPage >= detailActivitiesTotalPages}
-                                        onClick={() => fetchDetailActivities(detailUser.id, detailActivitiesPage + 1)}
-                                        className="px-3 py-1 rounded-md border border-gray-200 disabled:opacity-40"
-                                    >
-                                        Next
-                                    </button>
+                            {detailUser && (
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+                                    <PageSizeSelect
+                                        value={detailActivitiesPageSize}
+                                        onChange={(size) => {
+                                            setDetailActivitiesPageSize(size);
+                                            setDetailActivitiesPage(1);
+                                            fetchDetailActivities(detailUser.id, 1, size);
+                                        }}
+                                    />
+                                    {detailActivitiesTotalPages > 1 && (
+                                        <div className="flex items-center justify-center gap-3">
+                                            <button
+                                                type="button"
+                                                disabled={detailActivitiesPage <= 1}
+                                                onClick={() => fetchDetailActivities(detailUser.id, detailActivitiesPage - 1)}
+                                                className="px-3 py-1 rounded-md border border-gray-200 disabled:opacity-40"
+                                            >
+                                                Prev
+                                            </button>
+                                            <span className="text-sm text-gray-500">{detailActivitiesPage} / {detailActivitiesTotalPages}</span>
+                                            <button
+                                                type="button"
+                                                disabled={detailActivitiesPage >= detailActivitiesTotalPages}
+                                                onClick={() => fetchDetailActivities(detailUser.id, detailActivitiesPage + 1)}
+                                                className="px-3 py-1 rounded-md border border-gray-200 disabled:opacity-40"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

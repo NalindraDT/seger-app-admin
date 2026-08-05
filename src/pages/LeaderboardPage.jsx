@@ -6,8 +6,9 @@ import {
 import * as XLSX from 'xlsx-js-style';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { PageHeader, Button, Select, Modal, FormField, Toast, SortableTh } from '../components/ui';
+import { PageHeader, Button, Select, Modal, FormField, Toast, SortableTh, PageSizeSelect } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
+import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 
 const getEntryXp = (entry, isDepartmentView) => {
@@ -74,6 +75,7 @@ export default function LeaderboardPage() {
     const [leaderboard, setLeaderboard] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [currentDepartment, setCurrentDepartment] = useState(null);
@@ -265,10 +267,10 @@ export default function LeaderboardPage() {
 
             if (activeTab === 'individual') {
                 url = period === 'annual'
-                    ? `${getBaseUrl()}/leaderboard/annual?page=${currentPage}&limit=10`
-                    : `${getBaseUrl()}/leaderboard/${period}?page=${currentPage}&limit=10`;
+                    ? `${getBaseUrl()}/leaderboard/annual?page=${currentPage}&limit=${pageSize}`
+                    : `${getBaseUrl()}/leaderboard/${period}?page=${currentPage}&limit=${pageSize}`;
             } else if (activeTab === 'department') {
-                url = `${getBaseUrl()}/leaderboard/departments/${period}?page=${currentPage}&limit=10`;
+                url = `${getBaseUrl()}/leaderboard/departments/${period}?page=${currentPage}&limit=${pageSize}`;
             } else if (activeTab === 'event') {
                 if (!selectedEventId) {
                     setLeaderboard([]);
@@ -276,7 +278,7 @@ export default function LeaderboardPage() {
                     return;
                 }
                 // Menembak endpoint event spesifik
-                url = `${getBaseUrl()}/leaderboard/events/${selectedEventId}?page=${currentPage}&limit=10`;
+                url = `${getBaseUrl()}/leaderboard/events/${selectedEventId}?page=${currentPage}&limit=${pageSize}`;
             }
 
             const response = await fetch(url, {
@@ -309,10 +311,15 @@ export default function LeaderboardPage() {
         fetchEvents();
     }, []);
 
-    // Trigger fetch saat tab, filter, atau page berubah
+    // Trigger fetch saat tab, filter, page, atau page size berubah
     useEffect(() => {
         fetchLeaderboard();
-    }, [currentPage, activeTab, period, selectedEventId]);
+    }, [currentPage, pageSize, activeTab, period, selectedEventId]);
+
+    const handlePageSizeChange = (size) => {
+        setPageSize(size);
+        setCurrentPage(1);
+    };
 
     // Memisahkan Top 3 untuk UI Podium
     const top3 = leaderboard.slice(0, 3);
@@ -559,9 +566,12 @@ export default function LeaderboardPage() {
 
                         {/* PAGINATION */}
                         <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
-                            <p className="text-sm text-gray-500 font-medium">
-                                Showing {leaderboard.length > 0 ? ((currentPage - 1) * 10) + 1 : 0}-{Math.min(currentPage * 10, totalItems)} of {totalItems} entries
-                            </p>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                                <PageSizeSelect value={pageSize} onChange={handlePageSizeChange} />
+                                <p className="text-sm text-gray-500 font-medium">
+                                    Showing {leaderboard.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0}-{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
+                                </p>
+                            </div>
                             <div className="flex space-x-1">
                                 <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
                                 <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{currentPage}</button>

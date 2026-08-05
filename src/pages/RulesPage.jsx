@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
-    Plus, Edit, Trash2, MapPin, Scale
+    Plus, Edit, Trash2, MapPin, Scale, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, SortableTh
+    FormField, Input, Select, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, SortableTh, PageSizeSelect
 } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
+import { useClientPagination } from '../hooks/useClientPagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -276,6 +277,9 @@ export default function RulesPage() {
             reward_value: (item) => (activeTab === 'exp' ? item.xp_awarded : item.points_awarded) ?? 0,
         },
     });
+    const {
+        page, setPage, pageSize, setPageSize, totalPages, totalItems, pageItems, from, to,
+    } = useClientPagination(sortedRules);
 
     const modalTitle = modalMode === 'add'
         ? `Tambah Rules ${activeTab === 'exp' ? 'Exp' : 'Poin'}`
@@ -334,9 +338,9 @@ export default function RulesPage() {
                             ) : sortedRules.length === 0 ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Tidak ada data aturan.</td></tr>
                             ) : (
-                                sortedRules.map((item, index) => (
+                                pageItems.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-gray-800 text-center">{index + 1}</td>
+                                        <td className="px-6 py-4 font-bold text-gray-800 text-center">{(page - 1) * pageSize + index + 1}</td>
                                         <td className="px-6 py-4 font-extrabold text-gray-900 text-center">{getActivityName(item.activity_type_id)}</td>
                                         <td className="px-6 py-4 font-bold text-gray-700 text-center">{formatThresholdLabel(item.threshold_field ?? 'distance_km')}</td>
                                         <td className="px-6 py-4 font-bold text-gray-700 text-center">{item.min_value ?? item.min_distance_km}</td>
@@ -355,6 +359,19 @@ export default function RulesPage() {
                             )}
                         </tbody>
                     </table>
+                </div>
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                        <PageSizeSelect value={pageSize} onChange={setPageSize} />
+                        <p className="text-sm text-gray-500 font-medium">
+                            Showing {from}-{to} of {totalItems}
+                        </p>
+                    </div>
+                    <div className="flex space-x-1">
+                        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
+                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#5A2EFF] text-white font-bold text-sm">{page}</button>
+                        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
+                    </div>
                 </div>
             </div>
 
