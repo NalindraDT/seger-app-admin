@@ -3,8 +3,9 @@ import {
     Building2, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Textarea, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal
+    FormField, Input, Select, Textarea, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, SortableTh
 } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -139,6 +140,7 @@ export default function DepartmentsPage() {
     const filteredDepartments = departments.filter(dept =>
         dept.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    const { sortedItems: sortedDepartments, sortKey, sortDir, requestSort } = useTableSort(filteredDepartments);
 
     return (
         <div className="space-y-6 relative">
@@ -167,19 +169,19 @@ export default function DepartmentsPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F9FAFB] border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center w-16">No.</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Nama Departemen</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Deskripsi</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">Status</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">Aksi</th>
+                                <SortableTh label="No." sortable={false} align="center" className="text-[11px] w-16" />
+                                <SortableTh label="Nama Departemen" sortKey="name" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="text-[11px]" />
+                                <SortableTh label="Deskripsi" sortKey="description" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="text-[11px]" />
+                                <SortableTh label="Status" sortKey="is_active" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Aksi" sortable={false} align="center" className="text-[11px]" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#5A2EFF]" />Memuat data...</td></tr>
-                            ) : filteredDepartments.length === 0 ? (
+                            ) : sortedDepartments.length === 0 ? (
                                 <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium">Data departemen tidak ditemukan.</td></tr>
-                            ) : filteredDepartments.map((dept, index) => (
+                            ) : sortedDepartments.map((dept, index) => (
                                 <tr key={dept.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * 10) + index + 1}</td>
                                     <td className="px-6 py-4 font-bold text-gray-900">{dept.name}</td>

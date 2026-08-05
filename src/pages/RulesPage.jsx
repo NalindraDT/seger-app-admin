@@ -3,8 +3,9 @@ import {
     Plus, Edit, Trash2, MapPin, Scale
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal
+    FormField, Input, Select, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, SortableTh
 } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -268,6 +269,13 @@ export default function RulesPage() {
         const name = getActivityName(rule.activity_type_id).toLowerCase();
         return name.includes(searchTerm.toLowerCase());
     });
+    const { sortedItems: sortedRules, sortKey, sortDir, requestSort } = useTableSort(filteredRules, {
+        accessors: {
+            activity_name: (item) => getActivityName(item.activity_type_id),
+            min_threshold: (item) => item.min_value ?? item.min_distance_km ?? 0,
+            reward_value: (item) => (activeTab === 'exp' ? item.xp_awarded : item.points_awarded) ?? 0,
+        },
+    });
 
     const modalTitle = modalMode === 'add'
         ? `Tambah Rules ${activeTab === 'exp' ? 'Exp' : 'Poin'}`
@@ -311,22 +319,22 @@ export default function RulesPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F8F9FC] border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-16">No</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center">Nama Aktifitas</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center">Parameter Minimum</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center">Nilai Minimum</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center">{activeTab === 'exp' ? 'Hadiah EXP' : 'Hadiah poin'}</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-32">Status</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-32">Actions</th>
+                                <SortableTh label="No" sortable={false} align="center" className="font-bold text-gray-600 text-xs w-16" />
+                                <SortableTh label="Nama Aktifitas" sortKey="activity_name" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-600 text-xs" />
+                                <SortableTh label="Parameter Minimum" sortKey="threshold_field" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-600 text-xs" />
+                                <SortableTh label="Nilai Minimum" sortKey="min_threshold" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-600 text-xs" />
+                                <SortableTh label={activeTab === 'exp' ? 'Hadiah EXP' : 'Hadiah poin'} sortKey="reward_value" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-600 text-xs" />
+                                <SortableTh label="Status" sortKey="is_active" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-600 text-xs w-32" />
+                                <SortableTh label="Actions" sortable={false} align="center" className="font-bold text-gray-600 text-xs w-32" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data aturan...</td></tr>
-                            ) : filteredRules.length === 0 ? (
+                            ) : sortedRules.length === 0 ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Tidak ada data aturan.</td></tr>
                             ) : (
-                                filteredRules.map((item, index) => (
+                                sortedRules.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-bold text-gray-800 text-center">{index + 1}</td>
                                         <td className="px-6 py-4 font-extrabold text-gray-900 text-center">{getActivityName(item.activity_type_id)}</td>

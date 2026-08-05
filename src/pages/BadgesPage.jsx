@@ -3,8 +3,9 @@ import {
     Award, Plus, Edit, Trash2, Star, Hash, ShieldCheck, Eye, Info
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, CheckboxCard
+    FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, CheckboxCard, SortableTh
 } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -183,6 +184,11 @@ export default function BadgesPage() {
         }
     };
 
+    const { sortedItems: sortedBadges, sortKey, sortDir, requestSort } = useTableSort(badges, {
+        initialKey: 'tier',
+        initialDirection: 'asc',
+    });
+
     return (
         <div className="space-y-6 relative">
             <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
@@ -210,22 +216,22 @@ export default function BadgesPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F8F9FC] border-b border-gray-100 font-bold text-gray-600 text-[11px] uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4 text-center w-16">Tier</th>
-                                <th className="px-6 py-4 text-center w-24">Ikon</th>
-                                <th className="px-6 py-4">Nama Badge</th>
-                                <th className="px-6 py-4 text-center">Warna HEX</th>
-                                <th className="px-6 py-4 text-center">Range EXP</th>
-                                <th className="px-6 py-4 text-center">Tampil di Streak</th>
-                                <th className="px-6 py-4 text-center">Actions</th>
+                                <SortableTh label="Tier" sortKey="tier" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px] w-16" />
+                                <SortableTh label="Ikon" sortable={false} align="center" className="text-[11px] w-24" />
+                                <SortableTh label="Nama Badge" sortKey="name" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="text-[11px]" />
+                                <SortableTh label="Warna HEX" sortKey="color" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Range EXP" sortKey="min_xp" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Tampil di Streak" sortKey="use_in_streak" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Actions" sortable={false} align="center" className="text-[11px]" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data badges...</td></tr>
-                            ) : badges.length === 0 ? (
+                            ) : sortedBadges.length === 0 ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Belum ada data badge.</td></tr>
                             ) : (
-                                badges.sort((a, b) => a.tier - b.tier).map((item) => (
+                                sortedBadges.map((item) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-black text-gray-400 text-center text-lg">#{item.tier}</td>
                                         <td className="px-6 py-4 flex justify-center">

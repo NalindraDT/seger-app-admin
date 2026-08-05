@@ -6,7 +6,8 @@ import {
 import * as XLSX from 'xlsx-js-style';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { PageHeader, Button, Select, Modal, FormField, Toast } from '../components/ui';
+import { PageHeader, Button, Select, Modal, FormField, Toast, SortableTh } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 
 const getEntryXp = (entry, isDepartmentView) => {
@@ -315,7 +316,6 @@ export default function LeaderboardPage() {
 
     // Memisahkan Top 3 untuk UI Podium
     const top3 = leaderboard.slice(0, 3);
-    const others = leaderboard; 
 
     const isDepartmentView = activeTab === 'department';
 
@@ -329,6 +329,14 @@ export default function LeaderboardPage() {
         }
         return item.profile_photo_url || `https://ui-avatars.com/api/?name=${item.full_name}&background=random&size=128`;
     };
+
+    const { sortedItems: sortedLeaderboard, sortKey, sortDir, requestSort } = useTableSort(leaderboard, {
+        accessors: {
+            name: (item) => (isDepartmentView ? item.department_name : item.full_name),
+            total_xp: (item) => getEntryXp(item, isDepartmentView),
+        },
+    });
+    const { sortedItems: sortedDepartmentMembers, sortKey: membersSortKey, sortDir: membersSortDir, requestSort: requestMembersSort } = useTableSort(departmentMembers);
 
     return (
         <div className="space-y-6 relative">
@@ -461,20 +469,35 @@ export default function LeaderboardPage() {
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-white border-b border-gray-100">
                                     <tr>
-                                        <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-center w-20">Rank</th>
-                                        <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider">{isDepartmentView ? 'Departemen' : 'User'}</th>
+                                        <SortableTh label="Rank" sortKey="rank" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-500 text-[11px] w-20" />
+                                        <SortableTh
+                                            label={isDepartmentView ? 'Departemen' : 'User'}
+                                            sortKey="name"
+                                            activeKey={sortKey}
+                                            direction={sortDir}
+                                            onSort={requestSort}
+                                            className="font-bold text-gray-500 text-[11px]"
+                                        />
                                         {isDepartmentView ? (
                                             <>
-                                                <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-center">Anggota</th>
-                                                <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-center">Aktif</th>
-                                                <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-right">Rata-rata EXP</th>
+                                                <SortableTh label="Anggota" sortKey="member_count" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-500 text-[11px]" />
+                                                <SortableTh label="Aktif" sortKey="active_member_count" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-500 text-[11px]" />
+                                                <SortableTh label="Rata-rata EXP" sortKey="avg_xp_per_member" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="right" className="font-bold text-gray-500 text-[11px]" />
                                             </>
                                         ) : null}
-                                        <th className="px-6 py-4 font-bold text-gray-500 text-[11px] uppercase tracking-wider text-right pr-10">Total EXP</th>
+                                        <SortableTh
+                                            label="Total EXP"
+                                            sortKey="total_xp"
+                                            activeKey={sortKey}
+                                            direction={sortDir}
+                                            onSort={requestSort}
+                                            align="right"
+                                            className="font-bold text-gray-500 text-[11px] pr-10"
+                                        />
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
-                                    {others.map((item) => (
+                                    {sortedLeaderboard.map((item) => (
                                         <tr
                                             key={getItemKey(item)}
                                             className={`transition-colors group ${isDepartmentView ? 'hover:bg-indigo-50/50 cursor-pointer' : 'hover:bg-indigo-50/30'}`}
@@ -566,13 +589,13 @@ export default function LeaderboardPage() {
                         <table className="w-full text-left text-sm">
                             <thead className="border-b border-gray-100 bg-white">
                                 <tr>
-                                    <th className="w-16 px-2 py-3 text-center text-[11px] font-bold uppercase text-gray-500">Rank</th>
-                                    <th className="px-2 py-3 text-[11px] font-bold uppercase text-gray-500">Nama</th>
-                                    <th className="pr-2 py-3 text-right text-[11px] font-bold uppercase text-gray-500">XP</th>
+                                    <SortableTh label="Rank" sortKey="rank" activeKey={membersSortKey} direction={membersSortDir} onSort={requestMembersSort} align="center" className="w-16 px-2 py-3 text-[11px] font-bold text-gray-500" />
+                                    <SortableTh label="Nama" sortKey="full_name" activeKey={membersSortKey} direction={membersSortDir} onSort={requestMembersSort} className="px-2 py-3 text-[11px] font-bold text-gray-500" />
+                                    <SortableTh label="XP" sortKey="xp" activeKey={membersSortKey} direction={membersSortDir} onSort={requestMembersSort} align="right" className="pr-2 py-3 text-[11px] font-bold text-gray-500" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {departmentMembers.map((member) => (
+                                {sortedDepartmentMembers.map((member) => (
                                     <tr key={member.user_id} className="hover:bg-indigo-50/30">
                                         <td className="px-2 py-3 text-center font-bold text-gray-600">{member.rank}</td>
                                         <td className="px-2 py-3">

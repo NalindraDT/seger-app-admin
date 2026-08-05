@@ -3,8 +3,9 @@ import {
     Plus, Edit, Activity, Trash2
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, CheckboxCard
+    FormField, Input, Select, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, CheckboxCard, SortableTh
 } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -248,6 +249,7 @@ export default function ActivityTypesPage() {
         activity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         activity.code.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    const { sortedItems: sortedActivities, sortKey, sortDir, requestSort } = useTableSort(filteredActivities);
 
     return (
         <div className="space-y-6 relative">
@@ -276,18 +278,18 @@ export default function ActivityTypesPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F8F9FC] border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-16">No</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-32">Kode Aktifitas</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs">Nama Aktifitas</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-32">Status</th>
-                                <th className="px-6 py-4 font-bold text-gray-600 text-xs text-center w-32">Actions</th>
+                                <SortableTh label="No" sortable={false} align="center" className="font-bold text-gray-600 text-xs w-16" />
+                                <SortableTh label="Kode Aktifitas" sortKey="code" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-600 text-xs w-32" />
+                                <SortableTh label="Nama Aktifitas" sortKey="name" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="font-bold text-gray-600 text-xs" />
+                                <SortableTh label="Status" sortKey="is_active" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="font-bold text-gray-600 text-xs w-32" />
+                                <SortableTh label="Actions" sortable={false} align="center" className="font-bold text-gray-600 text-xs w-32" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium">Memuat data...</td></tr>
                             ) : (
-                                filteredActivities.map((item, index) => (
+                                sortedActivities.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-bold text-gray-800 text-center">{index + 1}</td>
                                         <td className="px-6 py-4 font-bold text-gray-900 text-center">{item.code}</td>

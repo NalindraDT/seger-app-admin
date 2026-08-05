@@ -5,8 +5,9 @@ import {
     FileDown, FileSpreadsheet, User as UserIcon, Mail, TrendingUp, Flame, Trash2, Plus, Activity
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar
+    FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar, SortableTh
 } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -448,6 +449,12 @@ export default function UsersPage() {
     };
 
     const filteredUsers = users;
+    const { sortedItems: sortedUsers, sortKey, sortDir, requestSort } = useTableSort(filteredUsers, {
+        accessors: {
+            points: getUserPoints,
+            xp: getUserXp,
+        },
+    });
 
     const getPageNumbers = () => {
         const pages = [];
@@ -515,24 +522,24 @@ export default function UsersPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F9FAFB] border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center w-16">No.</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Nama user</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Role user</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Perusahaan</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Departemen</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">Point</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">EXP</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">Status</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-[11px] uppercase tracking-wider text-center">Actions</th>
+                                <SortableTh label="No." sortable={false} align="center" className="text-[11px] w-16" />
+                                <SortableTh label="Nama user" sortKey="fullName" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="text-[11px]" />
+                                <SortableTh label="Role user" sortKey="role" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="text-[11px]" />
+                                <SortableTh label="Perusahaan" sortKey="companyName" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="text-[11px]" />
+                                <SortableTh label="Departemen" sortKey="departmentName" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="text-[11px]" />
+                                <SortableTh label="Point" sortKey="points" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="EXP" sortKey="xp" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Status" sortKey="isActive" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Actions" sortable={false} align="center" className="text-[11px]" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {/* NOTE: colSpan diubah dari 7 menjadi 8 karena ada penambahan kolom */}
                             {isLoading ? (
                                 <tr><td colSpan="9" className="text-center py-10 text-gray-500 font-medium">Memuat data user...</td></tr>
-                            ) : filteredUsers.length === 0 ? (
+                            ) : sortedUsers.length === 0 ? (
                                 <tr><td colSpan="9" className="text-center py-10 text-gray-500 font-medium">User tidak ditemukan.</td></tr>
-                            ) : filteredUsers.map((user, index) => (
+                            ) : sortedUsers.map((user, index) => (
                                 <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * 10) + index + 1}</td>
                                     <td className="px-6 py-4">

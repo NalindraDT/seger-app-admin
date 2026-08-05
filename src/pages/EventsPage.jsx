@@ -4,8 +4,9 @@ import {
     Image as ImageIcon, Calendar, Clock, Info, Flag, Gift
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload, ConfirmModal
+    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload, ConfirmModal, SortableTh
 } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -288,6 +289,8 @@ export default function EventsPage() {
         }
     };
 
+    const { sortedItems: sortedEvents, sortKey, sortDir, requestSort } = useTableSort(events);
+
     const formatDate = (dateString) => {
         if (!dateString) return '-';
         const date = new Date(dateString);
@@ -321,22 +324,22 @@ export default function EventsPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F8F9FC] border-b border-gray-100 font-bold text-gray-600 text-[11px] uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4 text-center w-16">No.</th>
-                                <th className="px-6 py-4 text-center w-32">Banner</th>
-                                <th className="px-6 py-4">Nama Event</th>
-                                <th className="px-6 py-4 text-center">Tema Warna</th>
-                                <th className="px-6 py-4 text-center">Waktu Pelaksanaan</th>
-                                <th className="px-6 py-4 text-center">Status</th>
-                                <th className="px-6 py-4 text-center w-32">Actions</th>
+                                <SortableTh label="No." sortable={false} align="center" className="text-[11px] w-16" />
+                                <SortableTh label="Banner" sortable={false} align="center" className="text-[11px] w-32" />
+                                <SortableTh label="Nama Event" sortKey="name" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="text-[11px]" />
+                                <SortableTh label="Tema Warna" sortKey="color_theme" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Waktu Pelaksanaan" sortKey="start_at" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Status" sortKey="status" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Actions" sortable={false} align="center" className="text-[11px] w-32" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data event...</td></tr>
-                            ) : events.length === 0 ? (
+                            ) : sortedEvents.length === 0 ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Belum ada data event.</td></tr>
                             ) : (
-                                events.map((item, index) => (
+                                sortedEvents.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * 10) + index + 1}</td>
                                         <td className="px-6 py-4 flex justify-center">

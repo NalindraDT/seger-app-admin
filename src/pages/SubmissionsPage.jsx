@@ -4,8 +4,9 @@ import {
     AlertTriangle, CheckCircle2, ClipboardList, Trash2, Download, RotateCcw, Calendar
 } from 'lucide-react';
 import {
-    PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal, Input
+    PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal, Input, SortableTh
 } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -264,6 +265,12 @@ export default function SubmissionsPage() {
         return `${pace} min/km`;
     };
 
+    const { sortedItems: sortedSubmissions, sortKey, sortDir, requestSort } = useTableSort(submissions, {
+        accessors: {
+            distance_duration: (item) => Number(item.distance_km ?? item.duration_minutes ?? 0),
+        },
+    });
+
     const getPageNumbers = () => {
         const pages = [];
         const maxVisible = 5;
@@ -404,23 +411,23 @@ export default function SubmissionsPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F9FAFB] border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">No.</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Nama Peserta</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tipe Aktivitas</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tanggal Aktivitas</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Jarak / Durasi</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Waktu Submit</th>
-                                <th className="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-center">Actions</th>
+                                <SortableTh label="No." sortable={false} />
+                                <SortableTh label="Nama Peserta" sortKey="participant_name" activeKey={sortKey} direction={sortDir} onSort={requestSort} />
+                                <SortableTh label="Tipe Aktivitas" sortKey="activity_type" activeKey={sortKey} direction={sortDir} onSort={requestSort} />
+                                <SortableTh label="Tanggal Aktivitas" sortKey="activity_date" activeKey={sortKey} direction={sortDir} onSort={requestSort} />
+                                <SortableTh label="Jarak / Durasi" sortKey="distance_duration" activeKey={sortKey} direction={sortDir} onSort={requestSort} />
+                                <SortableTh label="Status" sortKey="status" activeKey={sortKey} direction={sortDir} onSort={requestSort} />
+                                <SortableTh label="Waktu Submit" sortKey="submitted_at" activeKey={sortKey} direction={sortDir} onSort={requestSort} />
+                                <SortableTh label="Actions" sortable={false} align="center" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">Memuat data...</td></tr>
-                            ) : submissions.length === 0 ? (
+                            ) : sortedSubmissions.length === 0 ? (
                                 <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">Tidak ada data submission.</td></tr>
                             ) : (
-                                submissions.map((item, index) => (
+                                sortedSubmissions.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 font-bold text-gray-800">{((currentPage - 1) * 10) + index + 1}</td>
                                         <td className="px-6 py-4">

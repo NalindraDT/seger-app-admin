@@ -2,8 +2,45 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, ClipboardCheck, CheckCircle, Gift } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { PageHeader, Button } from '../components/ui';
+import { PageHeader, Button, SortableTh } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
+
+function RecentPendingTable({ items }) {
+    const { sortedItems, sortKey, sortDir, requestSort } = useTableSort(items);
+
+    return (
+        <table className="w-full text-left text-sm">
+            <thead>
+                <tr className="border-b border-gray-100 text-gray-400">
+                    <SortableTh label="Nama User" sortKey="participant_name" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="pb-3 px-0 font-semibold w-1/3" />
+                    <SortableTh label="Aktivitas" sortKey="activity_type" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="pb-3 px-0 font-semibold" />
+                    <SortableTh label="Jarak" sortKey="distance_km" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="right" className="pb-3 px-0 font-semibold" />
+                    <SortableTh label="Waktu" sortKey="submitted_at" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="right" className="pb-3 px-0 font-semibold" />
+                </tr>
+            </thead>
+            <tbody>
+                {sortedItems.slice(0, 3).map((item) => {
+                    const dateObj = new Date(item.submitted_at);
+                    const formattedTime = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+                    return (
+                        <tr key={item.id} className="border-b border-gray-50 last:border-none hover:bg-gray-50/50 transition-colors">
+                            <td className="py-3.5 font-bold text-gray-800">{item.participant_name}</td>
+                            <td className="py-3.5">
+                                <span className="bg-indigo-50 text-[#5A2EFF] font-bold px-2.5 py-1 rounded-md text-xs">
+                                    {item.activity_type}
+                                </span>
+                            </td>
+                            <td className="py-3.5 font-bold text-gray-700 text-right">{item.distance_km} km</td>
+                            <td className="py-3.5 text-gray-500 text-xs text-right font-medium">{formattedTime} WIB</td>
+                        </tr>
+                    );
+                })}
+            </tbody>
+        </table>
+    );
+}
 
 export default function DashboardHome() {
     const [data, setData] = useState(null);
@@ -119,35 +156,7 @@ export default function DashboardHome() {
 
                     <div className="flex-1 overflow-x-auto">
                         {data.recent_pending_submissions && data.recent_pending_submissions.length > 0 ? (
-                            <table className="w-full text-left text-sm">
-                                <thead>
-                                    <tr className="border-b border-gray-100 text-gray-400">
-                                        <th className="pb-3 font-semibold w-1/3">Nama User</th>
-                                        <th className="pb-3 font-semibold">Aktivitas</th>
-                                        <th className="pb-3 font-semibold text-right">Jarak</th>
-                                        <th className="pb-3 font-semibold text-right">Waktu</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {data.recent_pending_submissions.slice(0, 3).map((item) => {
-                                        const dateObj = new Date(item.submitted_at);
-                                        const formattedTime = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
-                                        return (
-                                            <tr key={item.id} className="border-b border-gray-50 last:border-none hover:bg-gray-50/50 transition-colors">
-                                                <td className="py-3.5 font-bold text-gray-800">{item.participant_name}</td>
-                                                <td className="py-3.5">
-                                                    <span className="bg-indigo-50 text-[#5A2EFF] font-bold px-2.5 py-1 rounded-md text-xs">
-                                                        {item.activity_type}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3.5 font-bold text-gray-700 text-right">{item.distance_km} km</td>
-                                                <td className="py-3.5 text-gray-500 text-xs text-right font-medium">{formattedTime} WIB</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                            <RecentPendingTable items={data.recent_pending_submissions} />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-32 text-gray-400">
                                 <ClipboardCheck className="w-10 h-10 mb-2 opacity-30" />

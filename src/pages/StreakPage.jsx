@@ -3,8 +3,9 @@ import {
     Flame, Plus, Edit, Trash2, Target, Star, Award, Info, ShieldCheck
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal
+    FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal, SortableTh
 } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -196,6 +197,12 @@ export default function StreakPage() {
         return found ? found.name : `Badge #${id}`;
     };
 
+    const { sortedItems: sortedRules, sortKey, sortDir, requestSort } = useTableSort(rules, {
+        accessors: {
+            badge_name: (item) => getBadgeName(item.badge_id),
+        },
+    });
+
     return (
         <div className="space-y-6 relative">
             <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
@@ -223,21 +230,21 @@ export default function StreakPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F8F9FC] border-b border-gray-100 font-bold text-gray-600 text-[11px] uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4 text-center w-16">No.</th>
-                                <th className="px-6 py-4 text-center">Target Hari (Streak)</th>
-                                <th className="px-6 py-4 text-center">Hadiah EXP</th>
-                                <th className="px-6 py-4 text-center">Badge Spesial</th>
-                                <th className="px-6 py-4 text-center">Status</th>
-                                <th className="px-6 py-4 text-center w-32">Actions</th>
+                                <SortableTh label="No." sortable={false} align="center" className="text-[11px] w-16" />
+                                <SortableTh label="Target Hari (Streak)" sortKey="milestone_days" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Hadiah EXP" sortKey="xp_reward" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Badge Spesial" sortKey="badge_name" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Status" sortKey="is_active" activeKey={sortKey} direction={sortDir} onSort={requestSort} align="center" className="text-[11px]" />
+                                <SortableTh label="Actions" sortable={false} align="center" className="text-[11px] w-32" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="6" className="text-center py-10 text-gray-500 font-medium">Memuat data aturan streak...</td></tr>
-                            ) : rules.length === 0 ? (
+                            ) : sortedRules.length === 0 ? (
                                 <tr><td colSpan="6" className="text-center py-10 text-gray-500 font-medium">Belum ada data aturan.</td></tr>
                             ) : (
-                                rules.map((item, index) => (
+                                sortedRules.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-bold text-gray-800 text-center">{index + 1}</td>
                                         <td className="px-6 py-4 font-black text-orange-500 text-center text-lg">

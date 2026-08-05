@@ -5,8 +5,9 @@ import {
     Eye, Info, CheckSquare, Clock
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload
+    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, SortableTh
 } from '../components/ui';
+import { useTableSort } from '../hooks/useTableSort';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -279,6 +280,9 @@ export default function RewardsPage() {
         }
     };
 
+    const { sortedItems: sortedRewards, sortKey: rewardsSortKey, sortDir: rewardsSortDir, requestSort: requestRewardsSort } = useTableSort(rewards);
+    const { sortedItems: sortedRedemptions, sortKey: redemptionsSortKey, sortDir: redemptionsSortDir, requestSort: requestRedemptionsSort } = useTableSort(redemptions);
+
     return (
         <div className="space-y-6 relative">
             <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
@@ -314,22 +318,22 @@ export default function RewardsPage() {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-[#F8F9FC] border-b border-gray-100 font-bold text-gray-600 text-[11px] uppercase tracking-wider">
                                 <tr>
-                                    <th className="px-6 py-4 text-center w-16">No.</th>
-                                    <th className="px-6 py-4 text-center w-24">Gambar</th>
-                                    <th className="px-6 py-4">Nama Hadiah</th>
-                                    <th className="px-6 py-4 text-center">Biaya</th>
-                                    <th className="px-6 py-4 text-center">Stock</th>
-                                    <th className="px-6 py-4 text-center">Status</th>
-                                    <th className="px-6 py-4 text-center">Actions</th>
+                                    <SortableTh label="No." sortable={false} align="center" className="text-[11px] w-16" />
+                                    <SortableTh label="Gambar" sortable={false} align="center" className="text-[11px] w-24" />
+                                    <SortableTh label="Nama Hadiah" sortKey="name" activeKey={rewardsSortKey} direction={rewardsSortDir} onSort={requestRewardsSort} className="text-[11px]" />
+                                    <SortableTh label="Biaya" sortKey="points_cost" activeKey={rewardsSortKey} direction={rewardsSortDir} onSort={requestRewardsSort} align="center" className="text-[11px]" />
+                                    <SortableTh label="Stock" sortKey="stock_qty" activeKey={rewardsSortKey} direction={rewardsSortDir} onSort={requestRewardsSort} align="center" className="text-[11px]" />
+                                    <SortableTh label="Status" sortKey="is_active" activeKey={rewardsSortKey} direction={rewardsSortDir} onSort={requestRewardsSort} align="center" className="text-[11px]" />
+                                    <SortableTh label="Actions" sortable={false} align="center" className="text-[11px]" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {isLoading ? (
                                     <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data katalog...</td></tr>
-                                ) : rewards.length === 0 ? (
+                                ) : sortedRewards.length === 0 ? (
                                     <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Belum ada data hadiah.</td></tr>
                                 ) : (
-                                    rewards.map((item, index) => (
+                                    sortedRewards.map((item, index) => (
                                         <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                             <td className="px-6 py-4 font-bold text-gray-800 text-center">{index + 1}</td>
                                             <td className="px-6 py-4 flex justify-center">
@@ -370,22 +374,22 @@ export default function RewardsPage() {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-[#F8F9FC] border-b border-gray-100 font-bold text-gray-600 text-[11px] uppercase tracking-wider">
                                 <tr>
-                                    <th className="px-6 py-4 text-center w-16">No.</th>
-                                    <th className="px-6 py-4">Peserta</th>
-                                    <th className="px-6 py-4">Hadiah Ditukar</th>
-                                    <th className="px-6 py-4 text-center">Qty / Poin</th>
-                                    <th className="px-6 py-4 text-center">Waktu Request</th>
-                                    <th className="px-6 py-4 text-center">Status</th>
-                                    <th className="px-6 py-4 text-center w-28">Aksi</th>
+                                    <SortableTh label="No." sortable={false} align="center" className="text-[11px] w-16" />
+                                    <SortableTh label="Peserta" sortKey="participant_name" activeKey={redemptionsSortKey} direction={redemptionsSortDir} onSort={requestRedemptionsSort} className="text-[11px]" />
+                                    <SortableTh label="Hadiah Ditukar" sortKey="reward_name" activeKey={redemptionsSortKey} direction={redemptionsSortDir} onSort={requestRedemptionsSort} className="text-[11px]" />
+                                    <SortableTh label="Qty / Poin" sortKey="points_spent" activeKey={redemptionsSortKey} direction={redemptionsSortDir} onSort={requestRedemptionsSort} align="center" className="text-[11px]" />
+                                    <SortableTh label="Waktu Request" sortKey="requested_at" activeKey={redemptionsSortKey} direction={redemptionsSortDir} onSort={requestRedemptionsSort} align="center" className="text-[11px]" />
+                                    <SortableTh label="Status" sortKey="status" activeKey={redemptionsSortKey} direction={redemptionsSortDir} onSort={requestRedemptionsSort} align="center" className="text-[11px]" />
+                                    <SortableTh label="Aksi" sortable={false} align="center" className="text-[11px] w-28" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {isRedemptionsLoading ? (
                                     <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data penukaran...</td></tr>
-                                ) : redemptions.length === 0 ? (
+                                ) : sortedRedemptions.length === 0 ? (
                                     <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Belum ada riwayat penukaran.</td></tr>
                                 ) : (
-                                    redemptions.map((item, index) => (
+                                    sortedRedemptions.map((item, index) => (
                                         <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                             <td className="px-6 py-4 font-bold text-gray-800 text-center">{((redemptionsPage - 1) * 10) + index + 1}</td>
                                             <td className="px-6 py-4">
