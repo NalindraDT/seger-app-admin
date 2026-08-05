@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
     Activity, Clock, ChevronLeft, ChevronRight, Check,
-    AlertTriangle, CheckCircle2, ClipboardList, Trash2, Download, RotateCcw
+    AlertTriangle, CheckCircle2, ClipboardList, Trash2, Download, RotateCcw, Calendar
 } from 'lucide-react';
 import {
-    PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal
+    PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal, Input
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
@@ -15,6 +15,8 @@ export default function SubmissionsPage() {
     const [activeTab, setActiveTab] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [scopeFilter, setScopeFilter] = useState('All');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalData, setTotalData] = useState(0);
@@ -48,10 +50,14 @@ export default function SubmissionsPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const statusQuery = activeTab === 'All' ? '' : `&status=${activeTab.toLowerCase()}`;
-            const searchQuery = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
-            const scopeQuery = scopeFilter === 'All' ? '' : `&scope=${scopeFilter}`;
-            const response = await fetch(`${getBaseUrl()}/admin/activity-submissions?page=${currentPage}&limit=10${statusQuery}${searchQuery}${scopeQuery}`, {
+            const params = new URLSearchParams({ page: String(currentPage), limit: '10' });
+            if (activeTab !== 'All') params.set('status', activeTab.toLowerCase());
+            if (searchTerm) params.set('search', searchTerm);
+            if (scopeFilter !== 'All') params.set('scope', scopeFilter);
+            if (dateFrom) params.set('date_from', dateFrom);
+            if (dateTo) params.set('date_to', dateTo);
+
+            const response = await fetch(`${getBaseUrl()}/admin/activity-submissions?${params.toString()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -66,9 +72,12 @@ export default function SubmissionsPage() {
                 } else {
                     setTotalData(items.length);
                 }
+            } else {
+                showToast(getApiErrorMessage(json, 'Gagal mengambil data submissions.'), 'error');
             }
         } catch (error) {
             console.error("Gagal mengambil data submissions", error);
+            showToast('Terjadi kesalahan jaringan saat mengambil data submissions.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -98,6 +107,8 @@ export default function SubmissionsPage() {
             if (activeTab !== 'All') params.set('status', activeTab.toLowerCase());
             if (searchTerm) params.set('search', searchTerm);
             if (scopeFilter !== 'All') params.set('scope', scopeFilter);
+            if (dateFrom) params.set('date_from', dateFrom);
+            if (dateTo) params.set('date_to', dateTo);
             const query = params.toString();
             const response = await fetch(`${getBaseUrl()}/admin/activity-submissions/export${query ? `?${query}` : ''}`, {
                 headers: { 'Authorization': `Bearer ${token}` },
@@ -220,7 +231,7 @@ export default function SubmissionsPage() {
 
     useEffect(() => {
         fetchSubmissions();
-    }, [activeTab, currentPage, searchTerm, scopeFilter]);
+    }, [activeTab, currentPage, searchTerm, scopeFilter, dateFrom, dateTo]);
 
     useEffect(() => {
         fetchDashboardSummary();
@@ -315,12 +326,46 @@ export default function SubmissionsPage() {
 
                         {/* SEARCH & TABS */}
             <div className="flex flex-col gap-4 mt-8">
-                <SearchBar
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                    placeholder="Cari nama peserta..."
-                    className="w-full md:max-w-md"
-                />
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:flex-wrap">
+                    <SearchBar
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                        placeholder="Cari nama peserta..."
+                        className="w-full md:max-w-md"
+                    />
+                    <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                        <div className="w-full sm:w-44">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Tgl Aktivitas Dari</label>
+                            <Input
+                                type="date"
+                                icon={Calendar}
+                                value={dateFrom}
+                                max={dateTo || undefined}
+                                onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }}
+                            />
+                        </div>
+                        <div className="w-full sm:w-44">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Sampai</label>
+                            <Input
+                                type="date"
+                                icon={Calendar}
+                                value={dateTo}
+                                min={dateFrom || undefined}
+                                onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }}
+                            />
+                        </div>
+                        {(dateFrom || dateTo) && (
+                            <Button
+                                variant="secondary"
+                                type="button"
+                                onClick={() => { setDateFrom(''); setDateTo(''); setCurrentPage(1); }}
+                                className="sm:mb-0.5"
+                            >
+                                Reset Tanggal
+                            </Button>
+                        )}
+                    </div>
+                </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                     <div className="overflow-x-auto -mx-1 px-1">
                         <div className="bg-[#F3F4F6] p-1 rounded-xl flex w-max space-x-1">
