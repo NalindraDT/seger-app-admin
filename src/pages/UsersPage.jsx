@@ -7,7 +7,7 @@ import {
 import {
     FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar, SortableTh, PageSizeSelect
 } from '../components/ui';
-import { useTableSort } from '../hooks/useTableSort';
+import { useServerTableSort } from '../hooks/useServerTableSort';
 import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
@@ -22,6 +22,8 @@ export default function UsersPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const debounceRef = useRef(null);
+    const { sortKey, sortDir, requestSort: requestSortBase, sortQuery } = useServerTableSort();
+    const requestSort = (key) => { requestSortBase(key); setCurrentPage(1); };
 
     const [stats, setStats] = useState({ total: 0, active: 0 });
     const [departments, setDepartments] = useState([]);
@@ -69,7 +71,7 @@ export default function UsersPage() {
         try {
             const token = localStorage.getItem('jwt_token');
             const searchQuery = debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : '';
-            const response = await fetch(`${getBaseUrl()}/admin/users?page=${currentPage}&limit=${pageSize}${searchQuery}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users?page=${currentPage}&limit=${pageSize}${searchQuery}${sortQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -148,7 +150,7 @@ export default function UsersPage() {
 
     useEffect(() => {
         fetchUsers();
-    }, [currentPage, pageSize, debouncedSearch]);
+    }, [currentPage, pageSize, debouncedSearch, sortKey, sortDir]);
 
     const handlePageSizeChange = (size) => {
         setPageSize(size);
@@ -456,14 +458,6 @@ export default function UsersPage() {
         }
     };
 
-    const filteredUsers = users;
-    const { sortedItems: sortedUsers, sortKey, sortDir, requestSort } = useTableSort(filteredUsers, {
-        accessors: {
-            points: getUserPoints,
-            xp: getUserXp,
-        },
-    });
-
     const getPageNumbers = () => {
         const pages = [];
         const maxVisible = 5;
@@ -545,9 +539,9 @@ export default function UsersPage() {
                             {/* NOTE: colSpan diubah dari 7 menjadi 8 karena ada penambahan kolom */}
                             {isLoading ? (
                                 <tr><td colSpan="9" className="text-center py-10 text-gray-500 font-medium">Memuat data user...</td></tr>
-                            ) : sortedUsers.length === 0 ? (
+                            ) : users.length === 0 ? (
                                 <tr><td colSpan="9" className="text-center py-10 text-gray-500 font-medium">User tidak ditemukan.</td></tr>
-                            ) : sortedUsers.map((user, index) => (
+                            ) : users.map((user, index) => (
                                 <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * pageSize) + index + 1}</td>
                                     <td className="px-6 py-4">

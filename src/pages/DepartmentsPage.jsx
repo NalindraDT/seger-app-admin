@@ -5,7 +5,7 @@ import {
 import {
     FormField, Input, Select, Textarea, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, SortableTh, PageSizeSelect
 } from '../components/ui';
-import { useTableSort } from '../hooks/useTableSort';
+import { useServerTableSort } from '../hooks/useServerTableSort';
 import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
@@ -17,6 +17,8 @@ export default function DepartmentsPage() {
     const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [totalPages, setTotalPages] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
+    const { sortKey, sortDir, requestSort: requestSortBase, sortQuery } = useServerTableSort();
+    const requestSort = (key) => { requestSortBase(key); setCurrentPage(1); };
     const [toastMessage, setToastMessage] = useState('');
     const [toastType, setToastType] = useState('success');
 
@@ -34,7 +36,7 @@ export default function DepartmentsPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/departments?page=${currentPage}&limit=${pageSize}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/departments?page=${currentPage}&limit=${pageSize}${sortQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -52,7 +54,7 @@ export default function DepartmentsPage() {
 
     useEffect(() => {
         fetchDepartments();
-    }, [currentPage, pageSize]);
+    }, [currentPage, pageSize, sortKey, sortDir]);
 
     const handlePageSizeChange = (size) => {
         setPageSize(size);
@@ -147,7 +149,6 @@ export default function DepartmentsPage() {
     const filteredDepartments = departments.filter(dept =>
         dept.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    const { sortedItems: sortedDepartments, sortKey, sortDir, requestSort } = useTableSort(filteredDepartments);
 
     return (
         <div className="space-y-6 relative">
@@ -186,9 +187,9 @@ export default function DepartmentsPage() {
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#5A2EFF]" />Memuat data...</td></tr>
-                            ) : sortedDepartments.length === 0 ? (
+                            ) : filteredDepartments.length === 0 ? (
                                 <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium">Data departemen tidak ditemukan.</td></tr>
-                            ) : sortedDepartments.map((dept, index) => (
+                            ) : filteredDepartments.map((dept, index) => (
                                 <tr key={dept.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * pageSize) + index + 1}</td>
                                     <td className="px-6 py-4 font-bold text-gray-900">{dept.name}</td>

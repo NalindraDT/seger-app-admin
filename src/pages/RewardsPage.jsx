@@ -8,6 +8,7 @@ import {
     FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, SortableTh, PageSizeSelect
 } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
+import { useServerTableSort } from '../hooks/useServerTableSort';
 import { useClientPagination } from '../hooks/useClientPagination';
 import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
@@ -45,6 +46,16 @@ export default function RewardsPage() {
     const [redemptionsPageSize, setRedemptionsPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [redemptionsTotalPages, setRedemptionsTotalPages] = useState(1);
     const [totalRedemptions, setTotalRedemptions] = useState(0);
+    const {
+        sortKey: redemptionsSortKey,
+        sortDir: redemptionsSortDir,
+        requestSort: requestRedemptionsSortBase,
+        sortQuery: redemptionsSortQuery,
+    } = useServerTableSort();
+    const requestRedemptionsSort = (key) => {
+        requestRedemptionsSortBase(key);
+        setRedemptionsPage(1);
+    };
 
     const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
     const [selectedRedemption, setSelectedRedemption] = useState(null);
@@ -73,7 +84,7 @@ export default function RewardsPage() {
         setIsRedemptionsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/reward-redemptions?page=${redemptionsPage}&limit=${redemptionsPageSize}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/reward-redemptions?page=${redemptionsPage}&limit=${redemptionsPageSize}${redemptionsSortQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -95,7 +106,7 @@ export default function RewardsPage() {
         } else {
             fetchRedemptions();
         }
-    }, [activeTab, redemptionsPage, redemptionsPageSize]);
+    }, [activeTab, redemptionsPage, redemptionsPageSize, redemptionsSortKey, redemptionsSortDir]);
 
     const handleRedemptionsPageSizeChange = (size) => {
         setRedemptionsPageSize(size);
@@ -292,7 +303,6 @@ export default function RewardsPage() {
     const {
         page, setPage, pageSize, setPageSize, totalPages, totalItems, pageItems, from, to,
     } = useClientPagination(sortedRewards);
-    const { sortedItems: sortedRedemptions, sortKey: redemptionsSortKey, sortDir: redemptionsSortDir, requestSort: requestRedemptionsSort } = useTableSort(redemptions);
 
     return (
         <div className="space-y-6 relative">
@@ -410,10 +420,10 @@ export default function RewardsPage() {
                             <tbody className="divide-y divide-gray-100">
                                 {isRedemptionsLoading ? (
                                     <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data penukaran...</td></tr>
-                                ) : sortedRedemptions.length === 0 ? (
+                                ) : redemptions.length === 0 ? (
                                     <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Belum ada riwayat penukaran.</td></tr>
                                 ) : (
-                                    sortedRedemptions.map((item, index) => (
+                                    redemptions.map((item, index) => (
                                         <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                             <td className="px-6 py-4 font-bold text-gray-800 text-center">{((redemptionsPage - 1) * redemptionsPageSize) + index + 1}</td>
                                             <td className="px-6 py-4">

@@ -6,7 +6,7 @@ import {
 import {
     PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal, Input, SortableTh, PageSizeSelect
 } from '../components/ui';
-import { useTableSort } from '../hooks/useTableSort';
+import { useServerTableSort } from '../hooks/useServerTableSort';
 import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
@@ -21,6 +21,8 @@ export default function SubmissionsPage() {
     const [dateTo, setDateTo] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
+    const { sortKey, sortDir, requestSort: requestSortBase, applySortParams } = useServerTableSort();
+    const requestSort = (key) => { requestSortBase(key); setCurrentPage(1); };
     const [totalPages, setTotalPages] = useState(1);
     const [totalData, setTotalData] = useState(0);
     const [dashboardSummary, setDashboardSummary] = useState(null);
@@ -59,6 +61,7 @@ export default function SubmissionsPage() {
             if (scopeFilter !== 'All') params.set('scope', scopeFilter);
             if (dateFrom) params.set('date_from', dateFrom);
             if (dateTo) params.set('date_to', dateTo);
+            applySortParams(params);
 
             const response = await fetch(`${getBaseUrl()}/admin/activity-submissions?${params.toString()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -234,7 +237,7 @@ export default function SubmissionsPage() {
 
     useEffect(() => {
         fetchSubmissions();
-    }, [activeTab, currentPage, pageSize, searchTerm, scopeFilter, dateFrom, dateTo]);
+    }, [activeTab, currentPage, pageSize, searchTerm, scopeFilter, dateFrom, dateTo, sortKey, sortDir]);
 
     const handlePageSizeChange = (size) => {
         setPageSize(size);
@@ -271,12 +274,6 @@ export default function SubmissionsPage() {
         if (pace == null || pace === '') return null;
         return `${pace} min/km`;
     };
-
-    const { sortedItems: sortedSubmissions, sortKey, sortDir, requestSort } = useTableSort(submissions, {
-        accessors: {
-            distance_duration: (item) => Number(item.distance_km ?? item.duration_minutes ?? 0),
-        },
-    });
 
     const getPageNumbers = () => {
         const pages = [];
@@ -431,10 +428,10 @@ export default function SubmissionsPage() {
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">Memuat data...</td></tr>
-                            ) : sortedSubmissions.length === 0 ? (
+                            ) : submissions.length === 0 ? (
                                 <tr><td colSpan="8" className="text-center py-10 text-gray-500 font-medium">Tidak ada data submission.</td></tr>
                             ) : (
-                                sortedSubmissions.map((item, index) => (
+                                submissions.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 font-bold text-gray-800">{((currentPage - 1) * pageSize) + index + 1}</td>
                                         <td className="px-6 py-4">

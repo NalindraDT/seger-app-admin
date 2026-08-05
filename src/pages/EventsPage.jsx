@@ -6,7 +6,7 @@ import {
 import {
     FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload, ConfirmModal, SortableTh, PageSizeSelect
 } from '../components/ui';
-import { useTableSort } from '../hooks/useTableSort';
+import { useServerTableSort } from '../hooks/useServerTableSort';
 import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
@@ -18,6 +18,8 @@ export default function EventsPage() {
     const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
+    const { sortKey, sortDir, requestSort: requestSortBase, sortQuery } = useServerTableSort();
+    const requestSort = (key) => { requestSortBase(key); setCurrentPage(1); };
 
     // STATE MODAL
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -66,7 +68,7 @@ export default function EventsPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
-            const response = await fetch(`${getBaseUrl()}/admin/events?page=${currentPage}&limit=${pageSize}`, {
+            const response = await fetch(`${getBaseUrl()}/admin/events?page=${currentPage}&limit=${pageSize}${sortQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
@@ -90,7 +92,7 @@ export default function EventsPage() {
     useEffect(() => {
         fetchEvents();
         fetchActivityTypes();
-    }, [currentPage, pageSize]);
+    }, [currentPage, pageSize, sortKey, sortDir]);
 
     const handlePageSizeChange = (size) => {
         setPageSize(size);
@@ -296,8 +298,6 @@ export default function EventsPage() {
         }
     };
 
-    const { sortedItems: sortedEvents, sortKey, sortDir, requestSort } = useTableSort(events);
-
     const formatDate = (dateString) => {
         if (!dateString) return '-';
         const date = new Date(dateString);
@@ -343,10 +343,10 @@ export default function EventsPage() {
                         <tbody className="divide-y divide-gray-100">
                             {isLoading ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Memuat data event...</td></tr>
-                            ) : sortedEvents.length === 0 ? (
+                            ) : events.length === 0 ? (
                                 <tr><td colSpan="7" className="text-center py-10 text-gray-500 font-medium">Belum ada data event.</td></tr>
                             ) : (
-                                sortedEvents.map((item, index) => (
+                                events.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * pageSize) + index + 1}</td>
                                         <td className="px-6 py-4 flex justify-center">
