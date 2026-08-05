@@ -164,7 +164,7 @@ export default function SubmissionsPage() {
                 fetchDashboardSummary();
                 setToastMessage(isReReview ? 'Peninjauan ulang berhasil.' : 'Verifikasi berhasil.');
             } else {
-                setToastMessage(json.message || json.error?.message || 'Gagal melakukan verifikasi');
+                setToastMessage(json.error?.message || json.message || 'Gagal melakukan verifikasi');
             }
         } catch (error) {
             setToastMessage('Terjadi kesalahan jaringan.');
@@ -505,7 +505,17 @@ export default function SubmissionsPage() {
                             <p className="hidden flex-1 text-xs font-medium leading-relaxed text-gray-500 md:block">
                                 Salah approve? Cabut poin lalu tolak, atau kembalikan ke pending untuk ditinjau ulang.
                             </p>
-                            <Button variant="danger" icon={AlertTriangle} onClick={() => setConfirmAction('re_reject')}>
+                            <Button
+                                variant="danger"
+                                icon={AlertTriangle}
+                                onClick={() => {
+                                    if (!reviewNote.trim()) {
+                                        setToastMessage('Catatan penolakan wajib diisi sebelum menolak aktivitas yang sudah di-approve.');
+                                        return;
+                                    }
+                                    setConfirmAction('re_reject');
+                                }}
+                            >
                                 Tolak (salah approve)
                             </Button>
                             <Button variant="secondary" icon={RotateCcw} onClick={() => setConfirmAction('revert_pending')}>
