@@ -190,12 +190,12 @@ export default function SubmissionsPage() {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
             const json = await response.json();
-            if (json.status === 'success') {
+            if (json.status === 'success' || json.success) {
                 setToastMessage('Submission berhasil dihapus.');
                 fetchSubmissions();
                 fetchDashboardSummary();
             } else {
-                setToastMessage(json.message || 'Gagal menghapus submission.');
+                setToastMessage(json.error?.message || json.message || 'Gagal menghapus submission.');
             }
         } catch {
             setToastMessage('Terjadi kesalahan jaringan.');
