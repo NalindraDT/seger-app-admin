@@ -16,11 +16,14 @@ export default function ConfirmModal({
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={() => {
+        if (!loading) onClose?.();
+      }}
       title={title}
       subtitle={description}
       icon={AlertTriangle}
       size="sm"
+      overlayClassName="z-[70]"
       footer={
         <>
           <Button variant="secondary" className="flex-1" onClick={onClose} disabled={loading}>

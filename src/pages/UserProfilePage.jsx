@@ -7,11 +7,13 @@ import {
 } from 'lucide-react';
 import { PageHeader, Button, FormField, Input, Modal, Toast } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 export default function UserProfilePage() {
     const [profile, setProfile] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
 
     // STATE UNTUK EDIT PROFIL (PATCH)
     const [isEditing, setIsEditing] = useState(false);
@@ -63,9 +65,13 @@ export default function UserProfilePage() {
         fetchProfile();
     }, []);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 4000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 4000);
     };
 
     // HANDLER EDIT PROFIL (PATCH)
@@ -96,7 +102,7 @@ export default function UserProfilePage() {
 
             const json = await response.json();
 
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setProfile(prev => ({
                     ...prev,
                     fullName: editForm.fullName,
@@ -106,10 +112,10 @@ export default function UserProfilePage() {
                 setIsEditing(false);
                 showToast('Profil berhasil diperbarui!');
             } else {
-                alert(json.message || "Gagal memperbarui profil.");
+                showToast(getApiErrorMessage(json, 'Gagal memperbarui profil.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan saat menyimpan profil.");
+            showToast('Terjadi kesalahan jaringan saat menyimpan profil.', 'error');
         } finally {
             setIsSaving(false);
         }
@@ -188,7 +194,7 @@ export default function UserProfilePage() {
 
             const json = await response.json();
 
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 showToast('Foto profil berhasil diperbarui!');
                 if (json.data && json.data.profile_photo_url) {
                     setProfile(prev => ({ ...prev, profilePhotoUrl: json.data.profile_photo_url }));
@@ -197,11 +203,11 @@ export default function UserProfilePage() {
                 }
                 setIsCropModalOpen(false);
             } else {
-                alert(json.message || "Gagal mengunggah foto profil.");
+                showToast(getApiErrorMessage(json, 'Gagal mengunggah foto profil.'), 'error');
             }
         } catch (error) {
             console.error(error);
-            alert("Terjadi kesalahan saat memproses atau mengunggah foto.");
+            showToast('Terjadi kesalahan saat memproses atau mengunggah foto.', 'error');
         } finally {
             setIsUploadingPhoto(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -223,17 +229,17 @@ export default function UserProfilePage() {
             });
             const json = await response.json();
 
-            if (response.ok && json.success) {
+            if (isApiSuccess(json)) {
                 // Buka Modal & Set Pesan Sukses
                 setOtp('');
                 setNewPassword('');
                 setAuthMessage({ type: 'success', text: 'Kode OTP telah dikirim ke email Anda.' });
                 setIsPasswordModalOpen(true);
             } else {
-                alert(json.message || 'Gagal meminta reset password.');
+                showToast(getApiErrorMessage(json, 'Gagal meminta reset password.'), 'error');
             }
         } catch (error) {
-            alert('Kesalahan jaringan saat meminta kode OTP.');
+            showToast('Kesalahan jaringan saat meminta kode OTP.', 'error');
         } finally {
             setIsProcessingAuth(false);
         }
@@ -257,13 +263,13 @@ export default function UserProfilePage() {
 
             const json = await response.json();
 
-            if (response.ok && json.success) {
+            if (isApiSuccess(json)) {
                 setIsPasswordModalOpen(false);
                 showToast('Password Anda berhasil diubah!');
                 setOtp('');
                 setNewPassword('');
             } else {
-                setAuthMessage({ type: 'error', text: json.message || 'Gagal mengubah password. Pastikan OTP benar.' });
+                setAuthMessage({ type: 'error', text: getApiErrorMessage(json, 'Gagal mengubah password. Pastikan OTP benar.') });
             }
         } catch (error) {
             setAuthMessage({ type: 'error', text: 'Terjadi kesalahan jaringan.' });
@@ -301,7 +307,7 @@ export default function UserProfilePage() {
 
     return (
         <div className="relative mx-auto max-w-4xl space-y-6">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Profil Saya"

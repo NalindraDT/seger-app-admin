@@ -6,6 +6,7 @@ import {
     FormField, Input, Select, Textarea, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 export default function DepartmentsPage() {
     const [departments, setDepartments] = useState([]);
@@ -14,6 +15,7 @@ export default function DepartmentsPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
 
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,9 +51,13 @@ export default function DepartmentsPage() {
         fetchDepartments();
     }, [currentPage]);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 4000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 4000);
     };
 
     const openAddModal = () => {
@@ -86,15 +92,15 @@ export default function DepartmentsPage() {
             });
 
             const json = await response.json();
-            if (json.success || response.ok) {
+            if (isApiSuccess(json)) {
                 setIsFormModalOpen(false);
                 fetchDepartments();
                 showToast(editId ? 'Departemen diperbarui!' : 'Departemen ditambahkan!');
             } else {
-                alert(json.message || "Gagal menyimpan departemen.");
+                showToast(getApiErrorMessage(json, 'Gagal menyimpan departemen.'), 'error');
             }
         } catch (error) {
-            alert("Kesalahan jaringan saat menyimpan data.");
+            showToast('Kesalahan jaringan saat menyimpan data.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -111,16 +117,20 @@ export default function DepartmentsPage() {
             });
             const json = await response.json();
 
-            if (json.success || response.ok) {
+            if (isApiSuccess(json)) {
                 setIsDeleteModalOpen(false);
                 setDepartmentToDelete(null);
                 fetchDepartments();
                 showToast('Departemen berhasil dihapus.');
             } else {
-                alert(json.message || "Gagal menghapus departemen.");
+                setIsDeleteModalOpen(false);
+                setDepartmentToDelete(null);
+                showToast(getApiErrorMessage(json, 'Gagal menghapus departemen.'), 'error');
             }
         } catch (error) {
-            alert("Kesalahan jaringan saat menghapus data.");
+            setIsDeleteModalOpen(false);
+            setDepartmentToDelete(null);
+            showToast('Kesalahan jaringan saat menghapus data.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -132,7 +142,7 @@ export default function DepartmentsPage() {
 
     return (
         <div className="space-y-6 relative">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Manajemen Departemen"

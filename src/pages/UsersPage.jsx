@@ -8,6 +8,7 @@ import {
     FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 export default function UsersPage() {
     const [users, setUsers] = useState([]);
@@ -39,6 +40,7 @@ export default function UsersPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
 
     // STATE UNTUK MODAL HAPUS
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -144,9 +146,13 @@ export default function UsersPage() {
         fetchUsers();
     }, [currentPage, debouncedSearch]);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 4000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 4000);
     };
 
     const closeAddModal = () => {
@@ -183,7 +189,7 @@ export default function UsersPage() {
 
             const json = await response.json();
             
-            if (response.ok && (json.success || json.status === 'success')) {
+            if (isApiSuccess(json)) {
                 closeAddModal();
                 fetchUsers();
                 fetchStats();
@@ -202,11 +208,11 @@ export default function UsersPage() {
                 } else if (response.status === 409 || errorCode === 'EMAIL_ALREADY_EXISTS') {
                     setAddFormErrors({ email: 'Email sudah terdaftar, gunakan email lain.' });
                 } else {
-                    alert(json.error?.message || json.message || "Gagal menambahkan user.");
+                    showToast(getApiErrorMessage(json, 'Gagal menambahkan user.'), 'error');
                 }
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -244,7 +250,7 @@ export default function UsersPage() {
                 setDetailActivitiesTotalPages(payload.pagination?.totalPages ?? 1);
             }
         } catch (error) {
-            alert("Kesalahan jaringan saat mengambil detail.");
+            showToast('Kesalahan jaringan saat mengambil detail.', 'error');
             setIsDetailModalOpen(false);
         } finally {
             setIsFetchingDetail(false);
@@ -334,7 +340,7 @@ export default function UsersPage() {
 
             showToast('Data user berhasil diekspor!');
         } catch (error) {
-            alert(error.message || 'Terjadi kesalahan saat export data user.');
+            showToast(error.message || 'Terjadi kesalahan saat export data user.', 'error');
         } finally {
             setIsExporting(false);
         }
@@ -355,17 +361,17 @@ export default function UsersPage() {
                 body: formDataUpload
             });
             const json = await response.json();
-            if (json.success) {
+            if (isApiSuccess(json)) {
                 setIsImportModalOpen(false);
                 setSelectedFile(null);
                 fetchUsers();
                 fetchStats();
                 showToast(`Import Berhasil! Sukses: ${json.data.success_rows}, Gagal: ${json.data.failed_rows}.`);
             } else {
-                alert(json.message || "Gagal import data.");
+                showToast(getApiErrorMessage(json, 'Gagal import data.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -396,15 +402,15 @@ export default function UsersPage() {
             });
 
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsEditModalOpen(false);
                 fetchUsers();
                 showToast('User berhasil diperbarui!');
             } else {
-                alert(json.message || "Gagal memperbarui user.");
+                showToast(getApiErrorMessage(json, 'Gagal memperbarui user.'), 'error');
             }
         } catch (error) {
-            alert("Gagal update user.");
+            showToast('Gagal update user.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -421,17 +427,21 @@ export default function UsersPage() {
             });
             const json = await response.json();
 
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsDeleteModalOpen(false);
                 setUserToDelete(null);
                 fetchUsers();
                 fetchStats();
                 showToast('User telah dihapus.');
             } else {
-                alert(json.message || "Gagal hapus user.");
+                setIsDeleteModalOpen(false);
+                setUserToDelete(null);
+                showToast(getApiErrorMessage(json, 'Gagal hapus user.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            setIsDeleteModalOpen(false);
+            setUserToDelete(null);
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -456,7 +466,7 @@ export default function UsersPage() {
 
     return (
         <div className="space-y-6 relative">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             {/* HEADER */}
             <div>

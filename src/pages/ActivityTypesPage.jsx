@@ -6,6 +6,7 @@ import {
     FormField, Input, Select, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal, CheckboxCard
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 const FIELD_OPTIONS = [
     { key: 'distance_km', label: 'Jarak', type: 'number', unit: 'km', required: true },
@@ -78,6 +79,7 @@ export default function ActivityTypesPage() {
     const [selectedId, setSelectedId] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [activityToDelete, setActivityToDelete] = useState(null);
@@ -162,9 +164,13 @@ export default function ActivityTypesPage() {
         fetchActivities();
     }, []);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 3000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 3000);
     };
 
     const handleSubmit = async (e) => {
@@ -182,13 +188,15 @@ export default function ActivityTypesPage() {
                 body: JSON.stringify(formData)
             });
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 closeModal();
                 fetchActivities();
                 showToast(modalMode === 'add' ? 'Tipe aktifitas berhasil ditambah!' : 'Tipe aktifitas berhasil diperbarui!');
+            } else {
+                showToast(getApiErrorMessage(json, 'Gagal memproses data.'), 'error');
             }
         } catch (error) {
-            alert("Gagal memproses data.");
+            showToast('Gagal memproses data.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -204,14 +212,20 @@ export default function ActivityTypesPage() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsDeleteModalOpen(false);
                 setActivityToDelete(null);
                 fetchActivities();
                 showToast('Tipe aktifitas berhasil dihapus!');
+            } else {
+                setIsDeleteModalOpen(false);
+                setActivityToDelete(null);
+                showToast(getApiErrorMessage(json, 'Gagal menghapus data.'), 'error');
             }
         } catch (error) {
-            alert("Gagal menghapus data.");
+            setIsDeleteModalOpen(false);
+            setActivityToDelete(null);
+            showToast('Gagal menghapus data.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -237,7 +251,7 @@ export default function ActivityTypesPage() {
 
     return (
         <div className="space-y-6 relative">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Tipe Aktifitas"

@@ -6,6 +6,7 @@ import {
     FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, CheckboxCard
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 export default function BadgesPage() {
     const [badges, setBadges] = useState([]);
@@ -18,6 +19,7 @@ export default function BadgesPage() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
     const [selectedBadge, setSelectedBadge] = useState(null);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -60,9 +62,13 @@ export default function BadgesPage() {
         fetchBadges();
     }, []);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 4000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 4000);
     };
 
     // HANDLER BUKA MODAL
@@ -132,16 +138,16 @@ export default function BadgesPage() {
             });
 
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
                 fetchBadges();
                 showToast(mode === 'add' ? 'Badge berhasil ditambahkan!' : 'Badge berhasil diperbarui!');
             } else {
-                alert(json.message || "Terjadi kesalahan: " + (json.error?.message || ""));
+                showToast(getApiErrorMessage(json, 'Terjadi kesalahan saat menyimpan badge.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -158,16 +164,20 @@ export default function BadgesPage() {
             });
             const json = await response.json();
 
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsDeleteModalOpen(false);
                 setBadgeToDelete(null);
                 fetchBadges();
                 showToast('Badge berhasil dihapus!');
             } else {
-                alert(json.message || json.error?.message || 'Gagal menghapus badge.');
+                setIsDeleteModalOpen(false);
+                setBadgeToDelete(null);
+                showToast(getApiErrorMessage(json, 'Gagal menghapus badge.'), 'error');
             }
         } catch (error) {
-            alert('Terjadi kesalahan jaringan.');
+            setIsDeleteModalOpen(false);
+            setBadgeToDelete(null);
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -175,7 +185,7 @@ export default function BadgesPage() {
 
     return (
         <div className="space-y-6 relative">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Badges & Rank"

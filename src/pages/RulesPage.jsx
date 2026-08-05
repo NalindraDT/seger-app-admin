@@ -6,6 +6,7 @@ import {
     FormField, Input, Select, Button, Modal, SearchBar, Toast, PageHeader, ConfirmModal
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 const THRESHOLD_FIELD_LABELS = {
     distance_km: 'Jarak (km)',
@@ -53,6 +54,7 @@ export default function RulesPage() {
     const [selectedActivityName, setSelectedActivityName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [ruleToDelete, setRuleToDelete] = useState(null);
@@ -116,9 +118,13 @@ export default function RulesPage() {
         fetchRules();
     }, [activeTab]);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 3000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 3000);
     };
 
     const getActivityName = (id) => {
@@ -210,15 +216,15 @@ export default function RulesPage() {
 
             const json = await response.json();
 
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 closeModal();
                 fetchRules();
                 showToast(modalMode === 'add' ? `Aturan ${activeTab.toUpperCase()} berhasil ditambahkan!` : `Aturan ${activeTab.toUpperCase()} berhasil diperbarui!`);
             } else {
-                alert(json.message || "Terjadi kesalahan saat menyimpan data.");
+                showToast(getApiErrorMessage(json, 'Terjadi kesalahan saat menyimpan data.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -235,14 +241,20 @@ export default function RulesPage() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsDeleteModalOpen(false);
                 setRuleToDelete(null);
                 fetchRules();
                 showToast(`Aturan ${activeTab.toUpperCase()} berhasil dihapus!`);
+            } else {
+                setIsDeleteModalOpen(false);
+                setRuleToDelete(null);
+                showToast(getApiErrorMessage(json, 'Gagal menghapus data.'), 'error');
             }
         } catch (error) {
-            alert("Gagal menghapus data.");
+            setIsDeleteModalOpen(false);
+            setRuleToDelete(null);
+            showToast('Gagal menghapus data.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -263,7 +275,7 @@ export default function RulesPage() {
 
     return (
         <div className="space-y-6 relative">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Aturan EXP dan Poin"

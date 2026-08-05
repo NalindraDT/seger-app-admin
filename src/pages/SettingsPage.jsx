@@ -6,11 +6,13 @@ import {
     FormField, Input, Button, Modal, Toast, PageHeader, ConfirmModal
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 export default function SettingsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
 
     const [settingsData, setSettingsData] = useState(null);
 
@@ -65,9 +67,13 @@ export default function SettingsPage() {
         fetchSettings();
     }, []);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 3000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 3000);
     };
 
     const openEditModal = () => {
@@ -104,15 +110,15 @@ export default function SettingsPage() {
 
             const json = await response.json();
 
-            if (json.status === 'success' || json.success) {
+            if (isApiSuccess(json)) {
                 showToast('Pengaturan limit berhasil diperbarui!');
                 closeEditModal();
                 fetchSettings();
             } else {
-                alert(json.message || "Terjadi kesalahan saat menyimpan pengaturan.");
+                showToast(getApiErrorMessage(json, 'Terjadi kesalahan saat menyimpan pengaturan.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -152,7 +158,7 @@ export default function SettingsPage() {
 
             showToast('Backup berhasil diunduh!');
         } catch (error) {
-            alert(error.message || 'Terjadi kesalahan saat membuat backup.');
+            showToast(error.message || 'Terjadi kesalahan saat membuat backup.', 'error');
         } finally {
             setIsExportingBackup(false);
         }
@@ -165,7 +171,7 @@ export default function SettingsPage() {
 
     const handleRestoreClick = () => {
         if (!backupFile) {
-            alert('Pilih file backup (.zip) terlebih dahulu.');
+            showToast('Pilih file backup (.zip) terlebih dahulu.', 'error');
             return;
         }
         setIsRestoreConfirmOpen(true);
@@ -188,7 +194,7 @@ export default function SettingsPage() {
 
             const json = await response.json();
 
-            if (json.status === 'success' || json.success) {
+            if (isApiSuccess(json)) {
                 showToast(`Restore berhasil! ${json.data?.restoredFiles ?? 0} file dipulihkan.`);
                 setBackupFile(null);
                 if (backupInputRef.current) {
@@ -196,10 +202,10 @@ export default function SettingsPage() {
                 }
                 fetchSettings();
             } else {
-                alert(json.error?.message || json.message || 'Gagal melakukan restore backup.');
+                showToast(getApiErrorMessage(json, 'Gagal melakukan restore backup.'), 'error');
             }
         } catch (error) {
-            alert('Terjadi kesalahan jaringan saat restore backup.');
+            showToast('Terjadi kesalahan jaringan saat restore backup.', 'error');
         } finally {
             setIsRestoringBackup(false);
             setIsRestoreConfirmOpen(false);
@@ -223,14 +229,14 @@ export default function SettingsPage() {
 
             const json = await response.json();
 
-            if (json.status === 'success' || json.success) {
+            if (isApiSuccess(json)) {
                 setIsMaintenance(targetState);
                 showToast(targetState ? 'Mode Perbaikan Aktif!' : 'Mode Perbaikan Dimatikan!');
             } else {
-                alert(json.message || "Gagal mengubah status maintenance.");
+                showToast(getApiErrorMessage(json, 'Gagal mengubah status maintenance.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan saat mengubah status maintenance.");
+            showToast('Terjadi kesalahan jaringan saat mengubah status maintenance.', 'error');
         } finally {
             setIsTogglingMaintenance(false);
             setIsConfirmModalOpen(false);
@@ -239,7 +245,7 @@ export default function SettingsPage() {
 
     return (
         <div className="space-y-6 relative">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Pengaturan Aplikasi"

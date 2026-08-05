@@ -6,6 +6,7 @@ import {
     FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 export default function StreakPage() {
     const [rules, setRules] = useState([]);
@@ -20,6 +21,7 @@ export default function StreakPage() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
     const [selectedRule, setSelectedRule] = useState(null);
 
     // FORM DATA
@@ -77,9 +79,13 @@ export default function StreakPage() {
         fetchBadges();
     }, []);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 4000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 4000);
     };
 
     // HANDLER MODAL
@@ -137,16 +143,16 @@ export default function StreakPage() {
             });
 
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
                 fetchRules();
                 showToast(mode === 'add' ? 'Aturan streak berhasil ditambahkan!' : 'Aturan streak berhasil diperbarui!');
             } else {
-                alert(json.message || "Terjadi kesalahan saat menyimpan aturan.");
+                showToast(getApiErrorMessage(json, 'Terjadi kesalahan saat menyimpan aturan.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -164,16 +170,20 @@ export default function StreakPage() {
             });
             const json = await response.json();
 
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsDeleteModalOpen(false);
                 setSelectedRule(null);
                 fetchRules();
                 showToast('Aturan streak telah dihapus!');
             } else {
-                alert(json.message || "Gagal menghapus aturan.");
+                setIsDeleteModalOpen(false);
+                setSelectedRule(null);
+                showToast(getApiErrorMessage(json, 'Gagal menghapus aturan.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            setIsDeleteModalOpen(false);
+            setSelectedRule(null);
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -188,7 +198,7 @@ export default function StreakPage() {
 
     return (
         <div className="space-y-6 relative">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Aturan Streak"

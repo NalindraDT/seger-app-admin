@@ -6,7 +6,7 @@ import {
 import * as XLSX from 'xlsx-js-style';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { PageHeader, Button, Select, Modal, FormField } from '../components/ui';
+import { PageHeader, Button, Select, Modal, FormField, Toast } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 
 const getEntryXp = (entry, isDepartmentView) => {
@@ -86,6 +86,17 @@ export default function LeaderboardPage() {
     const [events, setEvents] = useState([]);
     const [selectedEventId, setSelectedEventId] = useState('');
     const [isExporting, setIsExporting] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
+
+    const showToast = (message, type = 'success') => {
+        setToastMessage(message);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 4000);
+    };
 
     const buildLeaderboardUrl = (page, limit) => {
         if (activeTab === 'individual') {
@@ -141,7 +152,7 @@ export default function LeaderboardPage() {
         try {
             const items = await fetchAllLeaderboardItems();
             if (!items.length) {
-                alert('Tidak ada data leaderboard untuk diekspor.');
+                showToast('Tidak ada data leaderboard untuk diekspor.', 'error');
                 return;
             }
             const { tabLabel, periodLabel } = getExportMeta();
@@ -156,9 +167,10 @@ export default function LeaderboardPage() {
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Leaderboard');
             XLSX.writeFile(wb, `leaderboard_${tabLabel}_${periodLabel}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            showToast('Leaderboard berhasil diekspor ke Excel.');
         } catch (error) {
             console.error('Export Excel gagal', error);
-            alert('Gagal export Excel');
+            showToast('Gagal export Excel', 'error');
         } finally {
             setIsExporting(false);
         }
@@ -169,7 +181,7 @@ export default function LeaderboardPage() {
         try {
             const items = await fetchAllLeaderboardItems();
             if (!items.length) {
-                alert('Tidak ada data leaderboard untuk diekspor.');
+                showToast('Tidak ada data leaderboard untuk diekspor.', 'error');
                 return;
             }
             const { tabLabel, periodLabel } = getExportMeta();
@@ -190,9 +202,10 @@ export default function LeaderboardPage() {
                     : [item.rank, item.full_name, getEntryXp(item, false), item.department_name || '-']),
             });
             doc.save(`leaderboard_${tabLabel}_${periodLabel}_${new Date().toISOString().slice(0, 10)}.pdf`);
+            showToast('Leaderboard berhasil diekspor ke PDF.');
         } catch (error) {
             console.error('Export PDF gagal', error);
-            alert('Gagal export PDF');
+            showToast('Gagal export PDF', 'error');
         } finally {
             setIsExporting(false);
         }
@@ -319,6 +332,7 @@ export default function LeaderboardPage() {
 
     return (
         <div className="space-y-6 relative">
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Leaderboard"

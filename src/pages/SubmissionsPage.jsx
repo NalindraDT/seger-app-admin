@@ -7,6 +7,7 @@ import {
     PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 export default function SubmissionsPage() {
     const [submissions, setSubmissions] = useState([]);
@@ -29,9 +30,19 @@ export default function SubmissionsPage() {
     const [isZoomed, setIsZoomed] = useState(false);
     const [reviewNote, setReviewNote] = useState('');
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
 
     // confirmAction: 'approved' | 'rejected' | 're_reject' | 'revert_pending'
     const [confirmAction, setConfirmAction] = useState(null);
+
+    const showToast = (message, type = 'success') => {
+        setToastMessage(message);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 4000);
+    };
 
     const fetchSubmissions = async () => {
         setIsLoading(true);
@@ -110,9 +121,9 @@ export default function SubmissionsPage() {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-            setToastMessage('Data submission berhasil diekspor!');
+            showToast('Data submission berhasil diekspor!');
         } catch (error) {
-            setToastMessage(error.message || 'Terjadi kesalahan saat export data submission.');
+            showToast(error.message || 'Terjadi kesalahan saat export data submission.', 'error');
         } finally {
             setIsExporting(false);
         }
@@ -124,7 +135,7 @@ export default function SubmissionsPage() {
 
         const isRejectAction = confirmAction === 'rejected' || confirmAction === 're_reject';
         if (isRejectAction && !reviewNote.trim()) {
-            setToastMessage('Catatan penolakan wajib diisi sebelum menolak aktivitas.');
+            showToast('Catatan penolakan wajib diisi sebelum menolak aktivitas.', 'error');
             setConfirmAction(null);
             return;
         }
@@ -158,16 +169,18 @@ export default function SubmissionsPage() {
 
             const json = await response.json();
 
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 closeModal();
                 fetchSubmissions();
                 fetchDashboardSummary();
-                setToastMessage(isReReview ? 'Peninjauan ulang berhasil.' : 'Verifikasi berhasil.');
+                showToast(isReReview ? 'Peninjauan ulang berhasil.' : 'Verifikasi berhasil.');
             } else {
-                setToastMessage(json.error?.message || json.message || 'Gagal melakukan verifikasi');
+                setConfirmAction(null);
+                showToast(getApiErrorMessage(json, 'Gagal melakukan verifikasi'), 'error');
             }
         } catch (error) {
-            setToastMessage('Terjadi kesalahan jaringan.');
+            setConfirmAction(null);
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsVerifying(false);
             setConfirmAction(null);
@@ -190,15 +203,15 @@ export default function SubmissionsPage() {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
             const json = await response.json();
-            if (json.status === 'success' || json.success) {
-                setToastMessage('Submission berhasil dihapus.');
+            if (isApiSuccess(json)) {
+                showToast('Submission berhasil dihapus.');
                 fetchSubmissions();
                 fetchDashboardSummary();
             } else {
-                setToastMessage(json.error?.message || json.message || 'Gagal menghapus submission.');
+                showToast(getApiErrorMessage(json, 'Gagal menghapus submission.'), 'error');
             }
         } catch {
-            setToastMessage('Terjadi kesalahan jaringan.');
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsDeleting(false);
             setSubmissionToDelete(null);
@@ -252,7 +265,7 @@ export default function SubmissionsPage() {
 
     return (
         <div className="space-y-6">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <ConfirmModal
                 open={!!submissionToDelete}
@@ -510,7 +523,7 @@ export default function SubmissionsPage() {
                                 icon={AlertTriangle}
                                 onClick={() => {
                                     if (!reviewNote.trim()) {
-                                        setToastMessage('Catatan penolakan wajib diisi sebelum menolak aktivitas yang sudah di-approve.');
+                                        showToast('Catatan penolakan wajib diisi sebelum menolak aktivitas yang sudah di-approve.', 'error');
                                         return;
                                     }
                                     setConfirmAction('re_reject');

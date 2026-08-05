@@ -8,6 +8,7 @@ import {
     FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 export default function RewardsPage() {
     // =========================================================================
@@ -24,6 +25,7 @@ export default function RewardsPage() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
     const [selectedReward, setSelectedReward] = useState(null);
     const [rewardToDelete, setRewardToDelete] = useState(null);
 
@@ -91,9 +93,13 @@ export default function RewardsPage() {
         }
     }, [activeTab, redemptionsPage]);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 4000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 4000);
     };
 
     const getRedemptionStatusStyle = (status) => {
@@ -145,16 +151,16 @@ export default function RewardsPage() {
             const response = await fetch(url, { method: mode === 'add' ? 'POST' : 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: data });
             const json = await response.json();
 
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
                 fetchRewards();
                 showToast(mode === 'add' ? 'Hadiah berhasil ditambahkan!' : 'Hadiah berhasil diperbarui!');
             } else {
-                alert(json.message || "Terjadi kesalahan.");
+                showToast(getApiErrorMessage(json, 'Terjadi kesalahan.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -169,16 +175,20 @@ export default function RewardsPage() {
                 method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsDeleteModalOpen(false);
                 setRewardToDelete(null);
                 fetchRewards();
                 showToast('Hadiah telah dihapus!');
             } else {
-                alert(json.message || "Gagal menghapus hadiah.");
+                setIsDeleteModalOpen(false);
+                setRewardToDelete(null);
+                showToast(getApiErrorMessage(json, 'Gagal menghapus hadiah.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            setIsDeleteModalOpen(false);
+            setRewardToDelete(null);
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -209,17 +219,21 @@ export default function RewardsPage() {
             });
 
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsProcessModalOpen(false);
                 setSelectedRedemption(null);
                 setAdminNote('');
                 fetchRedemptions();
                 showToast('Penukaran hadiah berhasil di-ACC!');
             } else {
-                alert(json.message || "Gagal memproses penukaran.");
+                setIsProcessModalOpen(false);
+                setSelectedRedemption(null);
+                showToast(getApiErrorMessage(json, 'Gagal memproses penukaran.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            setIsProcessModalOpen(false);
+            setSelectedRedemption(null);
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -228,7 +242,7 @@ export default function RewardsPage() {
     const handleRejectRedemption = async () => {
         if (!selectedRedemption) return;
         if (!adminNote.trim()) {
-            alert('Catatan penolakan wajib diisi sebelum menolak penukaran hadiah.');
+            showToast('Catatan penolakan wajib diisi sebelum menolak penukaran hadiah.', 'error');
             return;
         }
 
@@ -245,17 +259,21 @@ export default function RewardsPage() {
             });
 
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsProcessModalOpen(false);
                 setSelectedRedemption(null);
                 setAdminNote('');
                 fetchRedemptions();
                 showToast('Penukaran hadiah ditolak.');
             } else {
-                alert(json.message || "Gagal menolak penukaran.");
+                setIsProcessModalOpen(false);
+                setSelectedRedemption(null);
+                showToast(getApiErrorMessage(json, 'Gagal menolak penukaran.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            setIsProcessModalOpen(false);
+            setSelectedRedemption(null);
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -263,7 +281,7 @@ export default function RewardsPage() {
 
     return (
         <div className="space-y-6 relative">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Hadiah"

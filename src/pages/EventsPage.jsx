@@ -7,6 +7,7 @@ import {
     FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload, ConfirmModal
 } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
+import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
 export default function EventsPage() {
     const [events, setEvents] = useState([]);
@@ -25,6 +26,7 @@ export default function EventsPage() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [allActivityTypes, setAllActivityTypes] = useState([]);
 
@@ -87,9 +89,18 @@ export default function EventsPage() {
         fetchActivityTypes();
     }, [currentPage]);
 
-    const showToast = (message) => {
+    const showToast = (message, type = 'success') => {
         setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 4000);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage('');
+            setToastType('success');
+        }, 4000);
+    };
+
+    const openGrantConfirm = () => {
+        setIsDetailModalOpen(false);
+        setIsGrantConfirmOpen(true);
     };
 
     // Helper untuk mengubah ISO Date dari Backend ke format input datetime-local HTML
@@ -184,16 +195,20 @@ export default function EventsPage() {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
             const json = await response.json();
-            if (json.success) {
-                setGrantSummary(json.data);
+            if (isApiSuccess(json)) {
+                const summary = json.data;
+                setGrantSummary(summary);
                 setSelectedEvent((prev) => (prev ? { ...prev, awards_points: true } : prev));
                 fetchEvents();
-                showToast(`Grant selesai: ${json.data.awarded} submission mendapat total ${json.data.total_points} poin.`);
+                showToast(
+                    `Grant selesai: ${summary.awarded} submission mendapat total ${summary.total_points} poin (diproses: ${summary.processed}).`,
+                    'success'
+                );
             } else {
-                showToast(json.error?.message || json.message || 'Gagal grant poin event.');
+                showToast(getApiErrorMessage(json, 'Gagal grant poin event.'), 'error');
             }
         } catch {
-            showToast('Terjadi kesalahan jaringan saat grant poin.');
+            showToast('Terjadi kesalahan jaringan saat grant poin.', 'error');
         } finally {
             setIsGrantingPoints(false);
             setIsGrantConfirmOpen(false);
@@ -258,16 +273,16 @@ export default function EventsPage() {
             });
 
             const json = await response.json();
-            if (json.success || json.status === 'success') {
+            if (isApiSuccess(json)) {
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
                 fetchEvents();
                 showToast(mode === 'add' ? 'Event berhasil ditambahkan!' : 'Event berhasil diperbarui!');
             } else {
-                alert(json.message || "Terjadi kesalahan.");
+                showToast(getApiErrorMessage(json, 'Terjadi kesalahan.'), 'error');
             }
         } catch (error) {
-            alert("Terjadi kesalahan jaringan.");
+            showToast('Terjadi kesalahan jaringan.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -281,7 +296,7 @@ export default function EventsPage() {
 
     return (
         <div className="space-y-6 relative">
-            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+            <Toast message={toastMessage} type={toastType} onClose={() => { setToastMessage(''); setToastType('success'); }} />
 
             <PageHeader
                 title="Events / Tantangan"
@@ -725,7 +740,7 @@ export default function EventsPage() {
                         <Button
                             variant="primary"
                             icon={Gift}
-                            onClick={() => setIsGrantConfirmOpen(true)}
+                            onClick={openGrantConfirm}
                             disabled={isGrantingPoints}
                         >
                             Grant poin ke submission approved
