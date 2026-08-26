@@ -1,4 +1,5 @@
 import { UploadCloud } from 'lucide-react';
+import StorageImage from './StorageImage';
 
 export default function FileUpload({
   label = 'Upload file',
@@ -9,13 +10,19 @@ export default function FileUpload({
   required = false,
   className = '',
 }) {
+  const isRemotePreview = Boolean(preview) && !String(preview).startsWith('blob:');
+
   return (
     <label
       className={`group relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 bg-[#F8F9FC] p-6 transition-all hover:border-[#5A2EFF] hover:bg-indigo-50/30 ${className}`}
     >
       {preview ? (
         <>
-          <img src={preview} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />
+          {isRemotePreview ? (
+            <StorageImage src={preview} alt="Preview" className="absolute inset-0 h-full w-full object-cover" placeholderClassName="absolute inset-0 h-full w-full" />
+          ) : (
+            <img src={preview} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />
+          )}
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
             <UploadCloud className="mb-2 h-8 w-8 text-white" />
             <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-white backdrop-blur-sm">

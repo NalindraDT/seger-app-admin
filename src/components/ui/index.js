@@ -12,3 +12,4 @@ export { default as PageHeader } from './PageHeader';
 export { default as ConfirmModal } from './ConfirmModal';
 export { default as SortableTh } from './SortableTh';
 export { default as PageSizeSelect } from './PageSizeSelect';
+export { default as StorageImage } from './StorageImage';

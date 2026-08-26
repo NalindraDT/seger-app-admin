@@ -5,7 +5,7 @@ import {
     User, Mail, Phone, Calendar, Clock,
     Camera, CheckCircle2, Edit3, ShieldCheck, Info, Save, Crop, Lock, KeyRound, Landmark, Loader2
 } from 'lucide-react';
-import { PageHeader, Button, FormField, Input, Modal, Toast } from '../components/ui';
+import { PageHeader, Button, FormField, Input, Modal, Toast, StorageImage } from '../components/ui';
 import { getBaseUrl } from '../utils/apiConfig';
 import { isApiSuccess, getApiErrorMessage } from '../utils/apiFeedback';
 
@@ -332,10 +332,11 @@ export default function UserProfilePage() {
                                         <span className="text-[10px] font-bold text-gray-500">Upload...</span>
                                     </div>
                                 ) : (
-                                    <img
-                                        src={profile.profilePhotoUrl || `https://ui-avatars.com/api/?name=${profile.fullName}&background=F3F4F6&color=5A2EFF&size=256`}
+                                    <StorageImage
+                                        src={profile.profilePhotoUrl}
                                         alt="Profile"
                                         className="w-full h-full rounded-full object-cover bg-gray-50"
+                                        fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=F3F4F6&color=5A2EFF&size=256`}
                                     />
                                 )}
                             </div>

@@ -4,7 +4,7 @@ import {
     AlertTriangle, CheckCircle2, ClipboardList, Trash2, Download, RotateCcw, Calendar
 } from 'lucide-react';
 import {
-    PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal, Input, SortableTh, PageSizeSelect
+    PageHeader, Button, Modal, Toast, SearchBar, ConfirmModal, Input, SortableTh, PageSizeSelect, StorageImage
 } from '../components/ui';
 import { useServerTableSort } from '../hooks/useServerTableSort';
 import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
@@ -51,8 +51,8 @@ export default function SubmissionsPage() {
         }, 4000);
     };
 
-    const fetchSubmissions = async () => {
-        setIsLoading(true);
+    const fetchSubmissions = async ({ silent = false } = {}) => {
+        if (!silent) setIsLoading(true);
         try {
             const token = localStorage.getItem('jwt_token');
             const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) });
@@ -78,14 +78,17 @@ export default function SubmissionsPage() {
                 } else {
                     setTotalData(items.length);
                 }
-            } else {
-                showToast(getApiErrorMessage(json, 'Gagal mengambil data submissions.'), 'error');
+                return items;
             }
+
+            showToast(getApiErrorMessage(json, 'Gagal mengambil data submissions.'), 'error');
+            return [];
         } catch (error) {
             console.error("Gagal mengambil data submissions", error);
             showToast('Terjadi kesalahan jaringan saat mengambil data submissions.', 'error');
+            return [];
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     };
 
@@ -237,6 +240,19 @@ export default function SubmissionsPage() {
 
     useEffect(() => {
         fetchSubmissions();
+    }, [activeTab, currentPage, pageSize, searchTerm, scopeFilter, dateFrom, dateTo, sortKey, sortDir]);
+
+    useEffect(() => {
+        const refresh = () => {
+            if (document.visibilityState === 'hidden') return;
+            fetchSubmissions({ silent: true });
+        };
+        window.addEventListener('focus', refresh);
+        document.addEventListener('visibilitychange', refresh);
+        return () => {
+            window.removeEventListener('focus', refresh);
+            document.removeEventListener('visibilitychange', refresh);
+        };
     }, [activeTab, currentPage, pageSize, searchTerm, scopeFilter, dateFrom, dateTo, sortKey, sortDir]);
 
     const handlePageSizeChange = (size) => {
@@ -493,7 +509,12 @@ export default function SubmissionsPage() {
                                                 <Button
                                                     size="sm"
                                                     variant="secondary"
-                                                    onClick={() => setSelectedSubmission(item)}
+                                                    onClick={async () => {
+                                                        setSelectedSubmission(item);
+                                                        const items = await fetchSubmissions({ silent: true });
+                                                        const fresh = items.find((row) => row.id === item.id);
+                                                        if (fresh) setSelectedSubmission(fresh);
+                                                    }}
                                                 >
                                                     Detail
                                                 </Button>
@@ -546,7 +567,7 @@ export default function SubmissionsPage() {
                     className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out p-4 animate-in fade-in duration-200"
                     onClick={() => setIsZoomed(false)}
                 >
-                    <img src={selectedSubmission.proof_photo} alt="Zoomed Bukti" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
+                    <StorageImage src={selectedSubmission.proof_photo} alt="Zoomed Bukti" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" placeholderClassName="max-w-full max-h-full rounded-xl p-10" />
                     <div className="absolute top-6 right-6 text-white font-bold bg-black/50 px-4 py-2 rounded-full pointer-events-none">Klik di mana saja untuk menutup</div>
                 </div>
             )}
@@ -736,7 +757,7 @@ export default function SubmissionsPage() {
                                 onClick={() => selectedSubmission.proof_photo && setIsZoomed(true)}
                             >
                                 {selectedSubmission.proof_photo ? (
-                                    <img src={selectedSubmission.proof_photo} alt="Bukti" className="h-full w-full object-cover" />
+                                    <StorageImage src={selectedSubmission.proof_photo} alt="Bukti" className="h-full w-full object-cover" placeholderClassName="h-full w-full" />
                                 ) : (
                                     <p className="text-sm font-medium text-gray-400">Tidak ada foto bukti</p>
                                 )}

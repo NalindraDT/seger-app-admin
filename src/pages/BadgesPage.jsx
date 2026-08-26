@@ -3,7 +3,7 @@ import {
     Award, Plus, Edit, Trash2, Star, Hash, ShieldCheck, Eye, Info, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, CheckboxCard, SortableTh, PageSizeSelect
+    FormField, Input, Select, Button, Modal, Toast, PageHeader, ConfirmModal, FileUpload, CheckboxCard, SortableTh, PageSizeSelect, StorageImage
 } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
 import { useClientPagination } from '../hooks/useClientPagination';
@@ -241,10 +241,12 @@ export default function BadgesPage() {
                                         <td className="px-6 py-4 flex justify-center">
                                             <div className="w-12 h-12 bg-gray-100 rounded-full border border-gray-200 overflow-hidden flex items-center justify-center p-1">
                                                 {item.image_url ? (
-                                                    <img
+                                                    <StorageImage
                                                         src={item.image_url}
-                                                        alt={item.name} className="w-full h-full object-contain"
-                                                        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${item.name}&background=F3F4F6`; }}
+                                                        alt={item.name}
+                                                        className="w-full h-full object-contain"
+                                                        fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=F3F4F6`}
+                                                        lazy
                                                     />
                                                 ) : <ShieldCheck className="w-6 h-6 text-gray-400" />}
                                             </div>
@@ -390,10 +392,11 @@ export default function BadgesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="w-full aspect-square bg-gray-100 rounded-3xl overflow-hidden border border-gray-100 shadow-inner flex items-center justify-center p-8 relative">
                             {selectedBadge.image_url ? (
-                                <img
+                                <StorageImage
                                     src={selectedBadge.image_url}
-                                    className="w-full h-full object-contain relative z-10 drop-shadow-md" alt="Detail"
-                                    onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${selectedBadge.name}&background=F3F4F6`; }}
+                                    className="w-full h-full object-contain relative z-10 drop-shadow-md"
+                                    alt="Detail"
+                                    fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(selectedBadge.name)}&background=F3F4F6`}
                                 />
                             ) : (
                                 <ShieldCheck className="w-24 h-24 text-gray-300" />

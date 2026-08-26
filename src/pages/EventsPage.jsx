@@ -4,7 +4,7 @@ import {
     Image as ImageIcon, Calendar, Clock, Info, Flag, Gift
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload, ConfirmModal, SortableTh, PageSizeSelect
+    FormField, Input, Select, Textarea, Button, Modal, Toast, PageHeader, FileUpload, ConfirmModal, SortableTh, PageSizeSelect, StorageImage
 } from '../components/ui';
 import { useServerTableSort } from '../hooks/useServerTableSort';
 import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
@@ -128,6 +128,8 @@ export default function EventsPage() {
         min_calories: '',
         max_submissions_per_day: '',
         max_submissions_total: '',
+        points_reward: '',
+        xp_reward: '',
     });
 
     const addAllowedActivity = () => {
@@ -184,6 +186,8 @@ export default function EventsPage() {
                 min_calories: item.min_calories ?? '',
                 max_submissions_per_day: item.max_submissions_per_day ?? '',
                 max_submissions_total: item.max_submissions_total ?? '',
+                points_reward: item.points_reward ?? '',
+                xp_reward: item.xp_reward ?? '',
             })),
         });
         setIsEditModalOpen(true);
@@ -268,6 +272,8 @@ export default function EventsPage() {
                     ...(item.min_calories !== '' ? { min_calories: Number(item.min_calories) } : {}),
                     ...(item.max_submissions_per_day !== '' ? { max_submissions_per_day: Number(item.max_submissions_per_day) } : {}),
                     ...(item.max_submissions_total !== '' ? { max_submissions_total: Number(item.max_submissions_total) } : {}),
+                    ...(item.points_reward !== '' ? { points_reward: Number(item.points_reward) } : {}),
+                    ...(item.xp_reward !== '' ? { xp_reward: Number(item.xp_reward) } : {}),
                 }));
 
             data.append('allowed_activities', JSON.stringify(allowedPayload));
@@ -352,10 +358,12 @@ export default function EventsPage() {
                                         <td className="px-6 py-4 flex justify-center">
                                             <div className="w-20 h-10 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center">
                                                 {item.banner_image_url ? (
-                                                    <img
+                                                    <StorageImage
                                                         src={item.banner_image_url}
-                                                        alt={item.name} className="w-full h-full object-cover"
-                                                        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${item.name}&background=F3F4F6`; }}
+                                                        alt={item.name}
+                                                        className="w-full h-full object-cover"
+                                                        fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=F3F4F6`}
+                                                        lazy
                                                     />
                                                 ) : <ImageIcon className="w-5 h-5 text-gray-400" />}
                                             </div>
@@ -632,6 +640,7 @@ export default function EventsPage() {
                             <div className="rounded-xl border border-dashed border-gray-200 bg-[#F8F9FC] px-4 py-8 text-center">
                                 <p className="text-sm font-medium text-gray-500">Belum ada restriksi aktivitas</p>
                                 <p className="mt-1 text-xs text-gray-400">Semua jenis aktivitas dapat disubmit selama event berlangsung</p>
+                                <p className="mt-2 text-xs text-gray-400">Tambahkan aktivitas diizinkan untuk mengatur poin &amp; XP khusus event.</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -721,6 +730,33 @@ export default function EventsPage() {
                                                     </FormField>
                                                 </div>
                                             </div>
+
+                                            <div className="space-y-3">
+                                                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Reward Event</p>
+                                                <p className="text-xs text-gray-500">
+                                                    Kosong = pakai aturan global. Poin hanya diberikan jika toggle Submission event dapat poin aktif.
+                                                </p>
+                                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                    <FormField label="Poin" optional hint="Flat per submission yang di-approve">
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="Aturan global"
+                                                            value={item.points_reward}
+                                                            onChange={(e) => updateAllowedActivity(index, 'points_reward', e.target.value)}
+                                                        />
+                                                    </FormField>
+                                                    <FormField label="XP" optional hint="Flat per submission yang di-approve">
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="Aturan global"
+                                                            value={item.xp_reward}
+                                                            onChange={(e) => updateAllowedActivity(index, 'xp_reward', e.target.value)}
+                                                        />
+                                                    </FormField>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -767,10 +803,11 @@ export default function EventsPage() {
                 <div className="space-y-6">
                     <div className="w-full aspect-[21/9] bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 shadow-inner relative">
                         {selectedEvent?.banner_image_url ? (
-                            <img
+                            <StorageImage
                                 src={selectedEvent.banner_image_url}
-                                className="w-full h-full object-cover" alt="Banner"
-                                onError={(e) => { e.target.onerror = null; e.target.src = "https://ui-avatars.com/api/?name=Event&background=F3F4F6"; }}
+                                className="w-full h-full object-cover"
+                                alt="Banner"
+                                fallback="https://ui-avatars.com/api/?name=Event&background=F3F4F6"
                             />
                         ) : (
                             <div className="flex h-full items-center justify-center text-gray-400">Tidak ada banner</div>

@@ -6,6 +6,7 @@ import {
     ClockAlert, Medal, CalendarDays, Flame, ChevronDown, Trophy, Building2, Landmark
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';
+import { StorageImage } from '../components/ui';
 
 export default function DashboardLayout() {
     const navigate = useNavigate();
@@ -321,11 +322,11 @@ export default function DashboardLayout() {
                                     </p>
                                 </div>
                                 <div className="relative">
-                                    <img
-                                        src={profilePhoto || `https://ui-avatars.com/api/?name=${adminName}&background=5A2EFF&color=fff`}
+                                    <StorageImage
+                                        src={profilePhoto}
                                         alt="Avatar"
                                         className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-100 group-hover:shadow-md transition-all"
-                                        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${adminName}&background=5A2EFF&color=fff`; }}
+                                        fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=5A2EFF&color=fff`}
                                     />
                                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                                 </div>

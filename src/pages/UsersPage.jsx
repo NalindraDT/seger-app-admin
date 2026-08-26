@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import {
     Users, Upload, Edit, Eye, ChevronLeft, ChevronRight,
-    FileDown, FileSpreadsheet, User as UserIcon, Mail, TrendingUp, Flame, Trash2, Plus, Activity
+    FileDown, FileSpreadsheet, User as UserIcon, Mail, TrendingUp, Flame, Trash2, Plus, Activity, Coins, Award
 } from 'lucide-react';
 import {
-    FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar, SortableTh, PageSizeSelect
+    FormField, Input, Select, Button, Modal, Toast, ConfirmModal, FileUpload, SearchBar, SortableTh, PageSizeSelect, StorageImage
 } from '../components/ui';
 import { useServerTableSort } from '../hooks/useServerTableSort';
 import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
@@ -25,7 +25,7 @@ export default function UsersPage() {
     const { sortKey, sortDir, requestSort: requestSortBase, sortQuery } = useServerTableSort();
     const requestSort = (key) => { requestSortBase(key); setCurrentPage(1); };
 
-    const [stats, setStats] = useState({ total: 0, active: 0 });
+    const [stats, setStats] = useState({ total: 0, active: 0, totalPoints: 0 });
     const [departments, setDepartments] = useState([]);
     const [companies, setCompanies] = useState([]);
 
@@ -62,6 +62,8 @@ export default function UsersPage() {
     const [detailActivitiesPageSize, setDetailActivitiesPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
     const [detailActivitiesTotalPages, setDetailActivitiesTotalPages] = useState(1);
     const [selectedActivityDetail, setSelectedActivityDetail] = useState(null);
+    const [detailBadges, setDetailBadges] = useState({ active_badge: null, earned_badges: [] });
+    const [detailStreak, setDetailStreak] = useState(null);
 
     const getUserPoints = (user) => Number(user?.pointsBalance ?? user?.points_balance ?? 0);
     const getUserXp = (user) => Number(user?.xpBalance ?? user?.xp_balance ?? 0);
@@ -90,14 +92,13 @@ export default function UsersPage() {
     const fetchStats = async () => {
         try {
             const token = localStorage.getItem('jwt_token');
-            // Total User harus dari seluruh users, bukan metrik dashboard mingguan (user baru).
-            const response = await fetch(`${getBaseUrl()}/admin/users?page=1&limit=1`, {
+            const response = await fetch(`${getBaseUrl()}/admin/users/stats`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const json = await response.json();
             if (json.success) {
-                const total = json.data.pagination?.totalItems ?? 0;
-                setStats({ total, active: total });
+                const total = json.data.total_users ?? 0;
+                setStats({ total, active: total, totalPoints: json.data.total_points ?? 0 });
             }
         } catch (error) {
             console.error("Gagal mengambil statistik");
@@ -235,18 +236,21 @@ export default function UsersPage() {
         setDetailActivities([]);
         setDetailActivitiesPage(1);
         setSelectedActivityDetail(null);
+        setDetailBadges({ active_badge: null, earned_badges: [] });
+        setDetailStreak(null);
         try {
             const token = localStorage.getItem('jwt_token');
-            const [profileRes, activitiesRes] = await Promise.all([
-                fetch(`${getBaseUrl()}/admin/users/${userId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }),
-                fetch(`${getBaseUrl()}/admin/users/${userId}/activities?page=1&limit=${detailActivitiesPageSize}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }),
+            const headers = { 'Authorization': `Bearer ${token}` };
+            const [profileRes, activitiesRes, badgesRes, streakRes] = await Promise.all([
+                fetch(`${getBaseUrl()}/admin/users/${userId}`, { headers }),
+                fetch(`${getBaseUrl()}/admin/users/${userId}/activities?page=1&limit=${detailActivitiesPageSize}`, { headers }),
+                fetch(`${getBaseUrl()}/admin/users/${userId}/badges`, { headers }),
+                fetch(`${getBaseUrl()}/admin/users/${userId}/streak`, { headers }),
             ]);
             const profileJson = await profileRes.json();
             const activitiesJson = await activitiesRes.json();
+            const badgesJson = await badgesRes.json();
+            const streakJson = await streakRes.json();
 
             if (profileJson.success) {
                 setDetailUser(profileJson.data);
@@ -259,6 +263,15 @@ export default function UsersPage() {
                 setDetailActivities(merged.length > 0 ? merged : (payload.items ?? []));
                 setDetailActivitiesPage(payload.pagination?.page ?? 1);
                 setDetailActivitiesTotalPages(payload.pagination?.totalPages ?? 1);
+            }
+            if (badgesJson.success) {
+                setDetailBadges({
+                    active_badge: badgesJson.data.active_badge ?? null,
+                    earned_badges: badgesJson.data.earned_badges ?? [],
+                });
+            }
+            if (streakJson.success) {
+                setDetailStreak(streakJson.data);
             }
         } catch (error) {
             showToast('Kesalahan jaringan saat mengambil detail.', 'error');
@@ -489,6 +502,11 @@ export default function UsersPage() {
                     <p className="text-sm font-bold text-gray-900 mb-1">Total User</p>
                     <h3 className="text-3xl font-extrabold text-[#5A2EFF]">{stats.total.toLocaleString()}</h3>
                 </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 mb-4"><Coins className="w-5 h-5" /></div>
+                    <p className="text-sm font-bold text-gray-900 mb-1">Total Poin Peserta</p>
+                    <h3 className="text-3xl font-extrabold text-amber-500">{Number(stats.totalPoints || 0).toLocaleString()}</h3>
+                </div>
             </div>
 
             {/* TOOLBAR */}
@@ -546,11 +564,12 @@ export default function UsersPage() {
                                     <td className="px-6 py-4 font-bold text-gray-800 text-center">{((currentPage - 1) * pageSize) + index + 1}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-3">
-                                            <img 
-                                                src={user.profilePhotoUrl || `https://ui-avatars.com/api/?name=${user.fullName}&background=random`} 
-                                                alt="Avatar" 
-                                                className="w-9 h-9 rounded-full object-cover border border-gray-200" 
-                                                onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${user.fullName}&background=F3F4F6`; }}
+                                            <StorageImage
+                                                src={user.profilePhotoUrl}
+                                                alt="Avatar"
+                                                className="w-9 h-9 rounded-full object-cover border border-gray-200"
+                                                fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=F3F4F6`}
+                                                lazy
                                             />
                                             <div>
                                                 <p className="font-bold text-gray-800">{user.fullName}</p>
@@ -802,10 +821,11 @@ export default function UsersPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="md:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                             <div className="flex items-center space-x-5 mb-5">
-                                <img
-                                    src={detailUser.profilePhotoUrl || `https://ui-avatars.com/api/?name=${detailUser.fullName}&background=random&size=128`}
+                                <StorageImage
+                                    src={detailUser.profilePhotoUrl}
                                     alt="Profile Besar"
                                     className="w-16 h-16 rounded-full object-cover border-2 border-indigo-50 shadow-sm"
+                                    fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(detailUser.fullName)}&background=random&size=128`}
                                 />
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start mb-1">
@@ -845,6 +865,96 @@ export default function UsersPage() {
                                 </div>
                             </div>
                             <div className="absolute -bottom-5 -right-5 opacity-20"><Flame className="w-24 h-24" /></div>
+                        </div>
+
+                        <div className="md:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                            <h3 className="font-bold flex items-center text-sm mb-4"><Flame className="w-4 h-4 text-orange-500 mr-2" /> Streak</h3>
+                            {detailStreak ? (
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div className="bg-[#F8F9FC] rounded-xl p-3 text-center">
+                                            <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">Saat ini</p>
+                                            <p className="text-xl font-black text-orange-500">{detailStreak.current_streak_days ?? 0} hari</p>
+                                        </div>
+                                        <div className="bg-[#F8F9FC] rounded-xl p-3 text-center">
+                                            <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">Terpanjang</p>
+                                            <p className="text-xl font-black text-[#5A2EFF]">{detailStreak.longest_streak_days ?? 0} hari</p>
+                                        </div>
+                                        <div className="bg-[#F8F9FC] rounded-xl p-3 text-center">
+                                            <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">Aktivitas terakhir</p>
+                                            <p className="text-sm font-bold text-gray-800">{detailStreak.last_activity_date || '-'}</p>
+                                        </div>
+                                    </div>
+                                    {detailStreak.badge && (
+                                        <div className="flex items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/60 p-3">
+                                            {detailStreak.badge.image_url || detailStreak.badge.image ? (
+                                                <StorageImage
+                                                    src={detailStreak.badge.image_url || detailStreak.badge.image}
+                                                    alt={detailStreak.badge.name}
+                                                    className="h-10 w-10 rounded-lg object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 text-orange-500">
+                                                    <Award className="h-5 w-5" />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase text-orange-500">Badge streak</p>
+                                                <p className="text-sm font-bold text-gray-800">{detailStreak.badge.name}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500 text-center py-4">Belum ada data streak.</p>
+                            )}
+                        </div>
+
+                        <div className="md:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                            <h3 className="font-bold text-sm mb-4 flex items-center">
+                                <Award className="w-4 h-4 text-[#5A2EFF] mr-2" />
+                                Lencana
+                            </h3>
+                            {detailBadges.active_badge && (
+                                <div className="mb-4 flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
+                                    {detailBadges.active_badge.image_url ? (
+                                        <StorageImage
+                                            src={detailBadges.active_badge.image_url}
+                                            alt={detailBadges.active_badge.name}
+                                            className="h-12 w-12 rounded-xl object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-[#5A2EFF]">
+                                            <Award className="h-6 w-6" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase text-[#5A2EFF]">Badge aktif</p>
+                                        <p className="text-sm font-extrabold text-gray-900">{detailBadges.active_badge.name}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {(detailBadges.earned_badges || []).length === 0 ? (
+                                <p className="text-sm text-gray-500 text-center py-4">Belum ada lencana.</p>
+                            ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {detailBadges.earned_badges.map((badge) => (
+                                        <div key={`${badge.id}-${badge.source_type}-${badge.earned_at}`} className="rounded-xl border border-gray-100 bg-[#F8F9FC] p-3 text-center">
+                                            {badge.image_url ? (
+                                                <StorageImage src={badge.image_url} alt={badge.name} className="mx-auto mb-2 h-12 w-12 rounded-xl object-cover" lazy />
+                                            ) : (
+                                                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#5A2EFF]">
+                                                    <Award className="h-5 w-5" />
+                                                </div>
+                                            )}
+                                            <p className="text-xs font-bold text-gray-800 leading-tight">{badge.name}</p>
+                                            <p className="mt-1 text-[10px] font-semibold uppercase text-gray-400">
+                                                {badge.source_type === 'streak' ? 'Streak' : badge.source_type === 'manual' ? 'Manual' : 'XP'}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="md:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -977,10 +1087,11 @@ export default function UsersPage() {
                         {selectedActivityDetail.proof_photo && (
                             <div>
                                 <span className="text-gray-500 block text-xs mb-2">Bukti Foto</span>
-                                <img
+                                <StorageImage
                                     src={selectedActivityDetail.proof_photo}
                                     alt="Bukti aktivitas"
                                     className="w-full max-h-64 object-cover rounded-xl border border-gray-100"
+                                    placeholderClassName="w-full h-40 rounded-xl border border-gray-100"
                                 />
                             </div>
                         )}

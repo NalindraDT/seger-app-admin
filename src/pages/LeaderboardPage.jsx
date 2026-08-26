@@ -6,7 +6,7 @@ import {
 import * as XLSX from 'xlsx-js-style';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { PageHeader, Button, Select, Modal, FormField, Toast, SortableTh, PageSizeSelect } from '../components/ui';
+import { PageHeader, Button, Select, Modal, FormField, Toast, SortableTh, PageSizeSelect, StorageImage } from '../components/ui';
 import { useTableSort } from '../hooks/useTableSort';
 import { DEFAULT_TABLE_PAGE_SIZE } from '../constants/tablePagination';
 import { getBaseUrl } from '../utils/apiConfig';
@@ -18,7 +18,7 @@ const getEntryXp = (entry, isDepartmentView) => {
     return Number(entry.xp ?? 0);
 };
 
-function PodiumItem({ entry, rank, isDepartmentView, getItemName, getItemAvatar }) {
+function PodiumItem({ entry, rank, isDepartmentView, getItemName }) {
     if (!entry) return <div className="w-24 sm:w-32 h-24 sm:h-32 opacity-0"></div>;
 
     const isFirst = rank === 1;
@@ -39,11 +39,11 @@ function PodiumItem({ entry, rank, isDepartmentView, getItemName, getItemAvatar 
                         <Building2 className={`${isFirst ? 'w-10 h-10' : 'w-8 h-8'} text-[#5A2EFF]`} />
                     </div>
                 ) : (
-                    <img
-                        src={getItemAvatar(entry)}
+                    <StorageImage
+                        src={entry.profile_photo_url}
                         alt={displayName}
                         className={`rounded-full object-cover border-4 border-white shadow-lg ring-4 ${ringColor} ${isFirst ? 'w-24 h-24' : 'w-20 h-20'}`}
-                        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${displayName}&background=random&size=128`; }}
+                        fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random&size=128`}
                     />
                 )}
                 <div className={`absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full flex items-center justify-center font-black text-white text-sm shadow-md ${isFirst ? 'bg-yellow-500' : isSecond ? 'bg-gray-400' : 'bg-orange-500'}`}>
@@ -330,13 +330,6 @@ export default function LeaderboardPage() {
 
     const getItemName = (item) => isDepartmentView ? (item.department_name || 'Departemen') : item.full_name;
 
-    const getItemAvatar = (item) => {
-        if (isDepartmentView) {
-            return `https://ui-avatars.com/api/?name=${encodeURIComponent(item.department_name || 'Dept')}&background=5A2EFF&color=fff&size=128`;
-        }
-        return item.profile_photo_url || `https://ui-avatars.com/api/?name=${item.full_name}&background=random&size=128`;
-    };
-
     const { sortedItems: sortedLeaderboard, sortKey, sortDir, requestSort } = useTableSort(leaderboard, {
         accessors: {
             name: (item) => (isDepartmentView ? item.department_name : item.full_name),
@@ -454,9 +447,9 @@ export default function LeaderboardPage() {
                             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-b from-yellow-50 to-transparent rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
                             <div className="flex items-end justify-center gap-1 sm:gap-6 relative z-10 mt-8 sm:mt-12 scale-90 sm:scale-100 origin-bottom">
-                                {top3[1] && <PodiumItem entry={top3[1]} rank={2} isDepartmentView={isDepartmentView} getItemName={getItemName} getItemAvatar={getItemAvatar} />}
-                                {top3[0] && <PodiumItem entry={top3[0]} rank={1} isDepartmentView={isDepartmentView} getItemName={getItemName} getItemAvatar={getItemAvatar} />}
-                                {top3[2] && <PodiumItem entry={top3[2]} rank={3} isDepartmentView={isDepartmentView} getItemName={getItemName} getItemAvatar={getItemAvatar} />}
+                                {top3[1] && <PodiumItem entry={top3[1]} rank={2} isDepartmentView={isDepartmentView} getItemName={getItemName} />}
+                                {top3[0] && <PodiumItem entry={top3[0]} rank={1} isDepartmentView={isDepartmentView} getItemName={getItemName} />}
+                                {top3[2] && <PodiumItem entry={top3[2]} rank={3} isDepartmentView={isDepartmentView} getItemName={getItemName} />}
                             </div>
                         </div>
                     )}
@@ -528,11 +521,12 @@ export default function LeaderboardPage() {
                                                             <Building2 className="w-5 h-5 text-[#5A2EFF]" />
                                                         </div>
                                                     ) : (
-                                                        <img
-                                                            src={getItemAvatar(item)}
+                                                        <StorageImage
+                                                            src={item.profile_photo_url}
                                                             alt="Avatar"
                                                             className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-200"
-                                                            onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${getItemName(item)}&background=random`; }}
+                                                            fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(getItemName(item))}&background=random`}
+                                                            lazy
                                                         />
                                                     )}
                                                     <div>
@@ -610,11 +604,12 @@ export default function LeaderboardPage() {
                                         <td className="px-2 py-3 text-center font-bold text-gray-600">{member.rank}</td>
                                         <td className="px-2 py-3">
                                             <div className="flex items-center gap-3">
-                                                <img
-                                                    src={member.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`}
+                                                <StorageImage
+                                                    src={member.profile_photo_url}
                                                     alt={member.full_name}
                                                     className="h-9 w-9 rounded-full border border-gray-200 object-cover"
-                                                    onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`; }}
+                                                    fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`}
+                                                    lazy
                                                 />
                                                 <span className="font-semibold text-gray-900">{member.full_name}</span>
                                             </div>
