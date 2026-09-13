@@ -42,6 +42,7 @@ function PodiumItem({ entry, rank, isDepartmentView, getItemName }) {
                     <StorageImage
                         src={entry.profile_photo_url}
                         alt={displayName}
+                        width={isFirst ? 96 : 80}
                         className={`rounded-full object-cover border-4 border-white shadow-lg ring-4 ${ringColor} ${isFirst ? 'w-24 h-24' : 'w-20 h-20'}`}
                         fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random&size=128`}
                     />
@@ -524,6 +525,7 @@ export default function LeaderboardPage() {
                                                         <StorageImage
                                                             src={item.profile_photo_url}
                                                             alt="Avatar"
+                                                            width={40}
                                                             className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-200"
                                                             fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(getItemName(item))}&background=random`}
                                                             lazy
@@ -607,6 +609,7 @@ export default function LeaderboardPage() {
                                                 <StorageImage
                                                     src={member.profile_photo_url}
                                                     alt={member.full_name}
+                                                    width={36}
                                                     className="h-9 w-9 rounded-full border border-gray-200 object-cover"
                                                     fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || 'User')}&background=random`}
                                                     lazy

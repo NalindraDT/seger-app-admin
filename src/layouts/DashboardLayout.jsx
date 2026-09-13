@@ -325,6 +325,7 @@ export default function DashboardLayout() {
                                     <StorageImage
                                         src={profilePhoto}
                                         alt="Avatar"
+                                        width={40}
                                         className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-100 group-hover:shadow-md transition-all"
                                         fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=5A2EFF&color=fff`}
                                     />

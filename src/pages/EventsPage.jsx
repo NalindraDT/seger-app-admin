@@ -361,6 +361,7 @@ export default function EventsPage() {
                                                     <StorageImage
                                                         src={item.banner_image_url}
                                                         alt={item.name}
+                                                        width={80}
                                                         className="w-full h-full object-cover"
                                                         fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=F3F4F6`}
                                                         lazy

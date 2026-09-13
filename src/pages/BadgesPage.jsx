@@ -244,6 +244,7 @@ export default function BadgesPage() {
                                                     <StorageImage
                                                         src={item.image_url}
                                                         alt={item.name}
+                                                        width={48}
                                                         className="w-full h-full object-contain"
                                                         fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=F3F4F6`}
                                                         lazy

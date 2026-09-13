@@ -567,6 +567,7 @@ export default function UsersPage() {
                                             <StorageImage
                                                 src={user.profilePhotoUrl}
                                                 alt="Avatar"
+                                                width={36}
                                                 className="w-9 h-9 rounded-full object-cover border border-gray-200"
                                                 fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=F3F4F6`}
                                                 lazy
@@ -824,6 +825,7 @@ export default function UsersPage() {
                                 <StorageImage
                                     src={detailUser.profilePhotoUrl}
                                     alt="Profile Besar"
+                                    width={64}
                                     className="w-16 h-16 rounded-full object-cover border-2 border-indigo-50 shadow-sm"
                                     fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(detailUser.fullName)}&background=random&size=128`}
                                 />
@@ -891,6 +893,7 @@ export default function UsersPage() {
                                                 <StorageImage
                                                     src={detailStreak.badge.image_url || detailStreak.badge.image}
                                                     alt={detailStreak.badge.name}
+                                                    width={40}
                                                     className="h-10 w-10 rounded-lg object-cover"
                                                 />
                                             ) : (
@@ -921,6 +924,7 @@ export default function UsersPage() {
                                         <StorageImage
                                             src={detailBadges.active_badge.image_url}
                                             alt={detailBadges.active_badge.name}
+                                            width={48}
                                             className="h-12 w-12 rounded-xl object-cover"
                                         />
                                     ) : (
@@ -941,7 +945,7 @@ export default function UsersPage() {
                                     {detailBadges.earned_badges.map((badge) => (
                                         <div key={`${badge.id}-${badge.source_type}-${badge.earned_at}`} className="rounded-xl border border-gray-100 bg-[#F8F9FC] p-3 text-center">
                                             {badge.image_url ? (
-                                                <StorageImage src={badge.image_url} alt={badge.name} className="mx-auto mb-2 h-12 w-12 rounded-xl object-cover" lazy />
+                                                <StorageImage src={badge.image_url} alt={badge.name} width={48} className="mx-auto mb-2 h-12 w-12 rounded-xl object-cover" lazy />
                                             ) : (
                                                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#5A2EFF]">
                                                     <Award className="h-5 w-5" />
@@ -1090,6 +1094,7 @@ export default function UsersPage() {
                                 <StorageImage
                                     src={selectedActivityDetail.proof_photo}
                                     alt="Bukti aktivitas"
+                                    width={320}
                                     className="w-full max-h-64 object-cover rounded-xl border border-gray-100"
                                     placeholderClassName="w-full h-40 rounded-xl border border-gray-100"
                                 />

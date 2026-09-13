@@ -360,7 +360,7 @@ export default function RewardsPage() {
                                             <td className="px-6 py-4 flex justify-center">
                                                 <div className="w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center">
                                                     {item.image ? (
-                                                        <StorageImage src={item.image} alt={item.name} className="w-full h-full object-cover" fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=F3F4F6&color=9CA3AF&size=128`} lazy />
+                                                        <StorageImage src={item.image} alt={item.name} width={48} className="w-full h-full object-cover" fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=F3F4F6&color=9CA3AF&size=128`} lazy />
                                                     ) : <ImageIcon className="w-5 h-5 text-gray-400" />}
                                                 </div>
                                             </td>

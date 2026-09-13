@@ -12,8 +12,12 @@ export function toSafeImageSrc(src) {
   return src;
 }
 
-export function withCacheBust(src, attempt) {
-  if (!src || attempt <= 0) return src;
+export function withQueryParam(src, key, value) {
+  if (!src || value === undefined || value === null) return src;
   const separator = src.includes('?') ? '&' : '?';
-  return `${src}${separator}t=${attempt}`;
+  return `${src}${separator}${key}=${value}`;
+}
+
+export function withCacheBust(src, attempt) {
+  return withQueryParam(src, 't', attempt > 0 ? attempt : undefined);
 }

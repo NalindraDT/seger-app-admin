@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ImageOff } from 'lucide-react';
-import { toSafeImageSrc, withCacheBust } from '../../utils/storageUrl';
+import { toSafeImageSrc, withCacheBust, withQueryParam } from '../../utils/storageUrl';
 
 export default function StorageImage({
   src,
@@ -10,6 +10,7 @@ export default function StorageImage({
   maxRetries = 2,
   lazy = false,
   placeholderClassName = '',
+  width,
 }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -21,7 +22,13 @@ export default function StorageImage({
     setLoaded(false);
   }, [src]);
 
-  const safeSrc = useMemo(() => toSafeImageSrc(src), [src]);
+  const safeSrc = useMemo(() => {
+    const safe = toSafeImageSrc(src);
+    if (!width || typeof safe !== 'string' || safe.startsWith('blob:') || safe.startsWith('data:')) return safe;
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    const pixels = Math.min(2048, Math.max(32, Math.ceil(width * dpr)));
+    return withQueryParam(safe, 'w', pixels);
+  }, [src, width]);
   const displaySrc = useMemo(() => {
     if (failed) return fallback || '';
     return withCacheBust(safeSrc, attempt);

@@ -19,7 +19,7 @@ export default function FileUpload({
       {preview ? (
         <>
           {isRemotePreview ? (
-            <StorageImage src={preview} alt="Preview" className="absolute inset-0 h-full w-full object-cover" placeholderClassName="absolute inset-0 h-full w-full" />
+            <StorageImage src={preview} alt="Preview" width={320} className="absolute inset-0 h-full w-full object-cover" placeholderClassName="absolute inset-0 h-full w-full" />
           ) : (
             <img src={preview} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />
           )}
