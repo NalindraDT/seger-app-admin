@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, Link, useLocation } from 'react-router-do
 import {
     LayoutDashboard, ClipboardList, Users, Activity,
     BookOpen, Gift, BarChart2, Settings, LogOut, X, Menu,
-    ClockAlert, Medal, CalendarDays, Flame, ChevronDown, Trophy, Building2, Landmark
+    ClockAlert, Medal, CalendarDays, Flame, ChevronDown, Trophy, Building2, Landmark, Watch
 } from 'lucide-react';
 import { getBaseUrl } from '../utils/apiConfig';
 import { StorageImage } from '../components/ui';
@@ -49,6 +49,7 @@ export default function DashboardLayout() {
             icon: Settings,
             subMenus: [
                 { name: 'Aktifitas', path: '/aktifitas', icon: Activity },
+                { name: 'Dicatat Dengan', path: '/recorded-via', icon: Watch },
                 { name: 'Aturan EXP & Poin', path: '/aturan', icon: BookOpen },
                 { name: 'Admin Settings', path: '/settings', icon: Settings },
             ]

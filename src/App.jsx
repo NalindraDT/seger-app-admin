@@ -4,6 +4,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
 import SubmissionsPage from './pages/SubmissionsPage';
 import ActivityTypesPage from './pages/ActivityTypesPage';
+import RecordedViaPage from './pages/RecordedViaPage';
 import UsersPage from './pages/UsersPage';
 import RulesPage from './pages/RulesPage';
 import RewardsPage from './pages/RewardsPage';
@@ -30,6 +31,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/submissions" element={<SubmissionsPage />} />
           <Route path="/aktifitas" element={<ActivityTypesPage/>} />
+          <Route path="/recorded-via" element={<RecordedViaPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/aturan" element={<RulesPage />} />
           <Route path="/hadiah" element={<RewardsPage />} />
